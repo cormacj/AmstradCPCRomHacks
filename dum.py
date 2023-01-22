@@ -38,6 +38,7 @@ else:
 loc = 0
 hexpart=""
 strpart=""
+locstr=(str(hex(loc)).split("x")[1]).rjust(4,"0")
 
 with open(dumpname, "rb") as f:
     while (byte := f.read(1)):
@@ -49,10 +50,11 @@ with open(dumpname, "rb") as f:
         value=value^xorval
         hexsingle=(str(hex(value)).split("x")[1]).rjust(2,"0") #covert the value to hex and strip off the 0x part and pad to double digits, ie 8 becomes 0x8 and ends as 08
 
-        if ((loc%16)==0):
-            print (hex(loc)+": "+hexpart+"  "+strpart)
+        if (loc>0 and (loc%16)==0):
+            print (locstr+": "+hexpart+"  "+strpart)
             hexpart=""
             strpart=""
+            locstr=(str(hex(loc)).split("x")[1]).rjust(4,"0")
         if (value>31 and value<127):
             strsingle=chr(value)
         else:
