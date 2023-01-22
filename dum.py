@@ -21,10 +21,18 @@
 
 import sys
 
-dumpname=sys.argv[1]
-xorval=sys.argv[2]
+argc = len(sys.argv)
+#print(argc)
+if argc <= 1:
+    print ("Usage: dum.py romfile.rom <xor hex value>")
+elif argc == 2:
+    dumpname=sys.argv[1]
+    xorval=0
+else:
+    dumpname=sys.argv[1]
+    xorval=int(sys.argv[2],16)
 
-print ("xorval="+xorval)
+#print ("xorval=",xorval)
 
 loc = 0
 with open(dumpname, "rb") as f:
@@ -34,6 +42,7 @@ with open(dumpname, "rb") as f:
         value=int.from_bytes(byte,"little")
         #value=value^0xaa #password
         #value=value^0x4e #name etc
+        value=value^xorval
         if ((loc%64)==0):
             print ("\n"+hex(loc)+": ", end='')
         loc = loc + 1
@@ -41,3 +50,4 @@ with open(dumpname, "rb") as f:
             print(chr(value),end='')
         else:
             print(".",end='')
+print("\n")

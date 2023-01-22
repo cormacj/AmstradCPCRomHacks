@@ -8,4 +8,4 @@ All files are Python3
 This dumps a .ROM file showing any printable ascii characters and strings. It takes an optional xor value for looking
 at the encoded information in Graduate Software CPM+ roms.
 
-Usage: ./dum.py <filename> <xor value>
+Usage: ./dum.py filename.rom <xor hex value>
