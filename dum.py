@@ -24,10 +24,11 @@ import sys
 argc = len(sys.argv)
 #print(argc)
 if argc <= 1:
-    print ("Usage: dum.py romfile.rom <xor hex value>")
+    print ("Usage: dum.py romfile.rom <xor hex value>\nExample: dum.py CPM1.rom 0x4e")
+    quit()
 elif argc == 2:
     dumpname=sys.argv[1]
-    xorval=0
+    xorval=0 #xor 0 is no xor
 else:
     dumpname=sys.argv[1]
     xorval=int(sys.argv[2],16)
@@ -35,6 +36,9 @@ else:
 #print ("xorval=",xorval)
 
 loc = 0
+hexpart=""
+strpart=""
+
 with open(dumpname, "rb") as f:
     while (byte := f.read(1)):
         # Do stuff with byte.
@@ -43,11 +47,24 @@ with open(dumpname, "rb") as f:
         #value=value^0xaa #password
         #value=value^0x4e #name etc
         value=value^xorval
-        if ((loc%64)==0):
-            print ("\n"+hex(loc)+": ", end='')
-        loc = loc + 1
+        hexsingle=(str(hex(value)).split("x")[1]).rjust(2,"0") #covert the value to hex and strip off the 0x part and pad to double digits, ie 8 becomes 0x8 and ends as 08
+
+        if ((loc%16)==0):
+            print (hex(loc)+": "+hexpart+"  "+strpart)
+            hexpart=""
+            strpart=""
         if (value>31 and value<127):
-            print(chr(value),end='')
+            strsingle=chr(value)
         else:
-            print(".",end='')
+            strsingle="."
+            #print(".",end='')
+        if hexpart=="":
+            hexpart=hexsingle+" "
+            strpart=strsingle
+        else:
+            hexpart=hexpart+hexsingle+" "
+            strpart=strpart+strsingle
+
+        loc = loc + 1
+
 print("\n")
