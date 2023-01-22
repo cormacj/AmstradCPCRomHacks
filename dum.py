@@ -18,13 +18,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#This program is aimed at exploring the contents of Amstrad ROM files
+#It has an optional XOR argument as some ROMs like the Graduate software
+#CPM+ roms has encoded areas for user details and password
 
 import sys
 
 argc = len(sys.argv)
 #print(argc)
-if argc <= 1:
+if argc <= 1 or sys.argv[1]=="-h" or sys.argv[1]=="--help":
     print ("Usage: dum.py romfile.rom <xor hex value>\nExample: dum.py CPM1.rom 0x4e")
+    print ("  Known XOR values are:")
+    print ("    0xaa - password")
+    print ("    0x4e - name, address, serial etc")
     quit()
 elif argc == 2:
     dumpname=sys.argv[1]
@@ -33,7 +39,7 @@ else:
     dumpname=sys.argv[1]
     xorval=int(sys.argv[2],16)
 
-#print ("xorval=",xorval)
+print ("xorval=",xorval)
 
 loc = 0
 hexpart=""
