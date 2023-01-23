@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#This program is designed to patch the Graduate software CPM+ rom for Amstrad CPC systems
+
 #1ff0: (C)1988 GRADUATE SOFTWARE
 
 #xor: 0x4e
@@ -33,12 +35,43 @@
 import sys
 
 # function definition
-def xorcrypt(data,xorval):
+def xorcrypt(data,xorval,padlevel):
     result=""
     for element in range(0, len(data)):
-        result=result+chr(ord(element)^xorval)
+        result=result+chr(ord(data[element])^xorval)
+    #pad the rest with zeroes
+    for pad in range(len(data)+1, padlevel):
+        result=result+chr(0^xorval) #pad out with zeroes
+    print (data)
+    print (result)
+    result=bytes(result,'ascii')
+
+    # print(padlevel)
+    # print (len(data))
+    # print (len(result))
+    # print(data)
     return result
 
+def validate(what,srcstring, length):
+    if len(srcstring)>length:
+        print("Error: "+what+" is too long. Maximum characters is",length," Currently it's at ",len(srcstring),"characters.")
+        quit()
+    return
+
+def dumphelp():
+    print ("Usage:")
+    print ("To display the details of what is stored in the ROM:")
+    print ("  cpmrompatch.py --src SourceROM.rom --display\n")
+    print ("To update the ROM, you must specify --src and --dest and one of the following:")
+    print ("  cpmrompatch.py --src SourceROM.rom --dest DestROM.rom")
+    print ("    --name \"<Name>\" - Sets the name of the ROM owner")
+    print ("    --address \"<Address>\" - Sets the address of the ROM owner")
+    print ("    --serial <serial number> - Sets the serial number of the ROM")
+    print ("    --password <password> - Sets the password for |PASSWORD\n")
+    print("Examples:")
+    print("   cpmrompatch.py --src CPM1.rom --dest CPM1-updated.rom --name \"John Smith\" --address \"123 Acacia Ave, Sometown\"")
+    quit()
+    return
 argc = len(sys.argv)
 # print(argc)
 # print(sys.argv[1])
@@ -59,6 +92,7 @@ newname_crypt = ""
 
 newpw = ""
 newpw_crypt = ""
+newpwlen_crypt = 0
 
 newaddress = ""
 newaddress_crypt = ""
@@ -75,11 +109,12 @@ setpw=-1
 setname=-1
 setaddr=-1
 sourceset=-1
+setserial=-1
 destset=-1
 
 if argc <= 1:
-    print ("Usage: cpmrompatch.py romfile.rom <xor hex value>\nExample: dum.py CPM1.rom 0x4e") #TODO: update this
-    quit()
+    dumphelp
+
 values=range(argc)
 
 #xor: 0x4e
@@ -95,22 +130,30 @@ values=range(argc)
 for param in values:
     if sys.argv[param] == "--display":
         display=1
+    elif (sys.argv[param] =="-h") or (sys.argv[param]=="--help"):
+        dumphelp()
     elif sys.argv[param] == "--password":
         setpw=1 #enable password setting
         newpw=sys.argv[param+1] #grab Password
-        newpw_crypt=xorcrypt(newpw,0xaa)
-        pwlength=len(newpw)
+        newpwlen_crypt=len(newpw)^0xaa
+        print(newpw)
+        newpw_crypt=xorcrypt(newpw,0xaa,16)
+        validate("password",newpw,16)
     elif sys.argv[param] == "--name":
         setname=1
         newname=sys.argv[param+1]
-        newname_crypt=xorcrypt(newname,0x4e)
+        newname_crypt=xorcrypt(newname,0x4e,24)
+        validate("name",newname,24)
     elif sys.argv[param] == "--address":
         setaddr=1
         newaddress=sys.argv[param+1]
-        newaddress_crypt=xorcrypt(newaddress,0x4e)
+        newaddress_crypt=xorcrypt(newaddress,0x4e,68)
+        validate("address",newaddress,68)
     elif sys.argv[param] == "--serial":
+        setserial=1
         newserial=[param+1]
-        newserial_crypt=xorcrypt(serial,0x4e)
+        newserial_crypt=xorcrypt(serial,0x4e,12)
+        validate("serial",newserial,12)
     elif sys.argv[param] == "--src":
         src = sys.argv[param+1]
         sourceset=1
@@ -125,7 +168,7 @@ if sourceset==-1:
 
 #Scan the source rom
 with open(src, "rb") as f:
-    print("Reading from: "+src)
+    #print("Reading from: "+src)
     while (byte := f.read(1)):
         # Do stuff with byte.
         #print(loc%64)
@@ -153,7 +196,7 @@ with open(src, "rb") as f:
             char=value^0x4e
             if char>31 and char<127:
                 name=name+chr(char)
-        if (loc>0x3f19) and (loc<0x3f60):
+        if (loc>0x3f19) and (loc<0x3f5e):
             char=value^0x4e
             if char>31 and char<127:
                 address=address+chr(char)
@@ -186,6 +229,8 @@ if display==1:
 #We're going to update somethings
 elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
     #We're going to be updating things, make sure we know where we're writing to
+    # if display==-1:
+    #     dumphelp()
     if destset==-1:
         print("Error: You must specify a destination ROM file using --dest, eg --dest NEWROM.rom")
         quit()
@@ -193,3 +238,48 @@ elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
     if src==dest:
         print("Error: You cannot have the same file for source and destination.")
         quit()
+
+    #start copying the ROM
+    loc = 0
+    destfile = open(dest, "wb")
+    with open(src, "rb") as srcfile:
+        #print("Reading from: "+src)
+        while (byte := srcfile.read(1)):
+
+            #print(".",end='')
+            #
+            # if (loc>=0x1ff0) and (loc<=0x2009):
+            #     char=value^0x00
+            #     if char>31 and char<127:
+            #         copyright=copyright+chr(char)
+                    #3f00-3f17: name
+                    #3f19-3f5f: address
+                    #3f71-3f7d: serial
+
+                    #xor: 0xaa
+                    #3f87: password length(?)
+                    #3f88-3fff: password
+
+            if (loc>=0x3f00) and (loc<=0x3f16) and (setname>-1):
+                #Name, pad(16)
+                if setname==1:
+                    destfile.write(newname_crypt)
+                setname=0 #don't need to rewrite, 0=written
+            elif (loc>0x3f19) and (loc<0x3f5d) and (setaddr>-1):
+                if setaddr==1:
+                    destfile.write(newaddress_crypt)
+                setaddr=0
+            elif (loc>0x3f71) and (loc<0x3f7d) and (setserial>-1):
+                if setserial==1:
+                    destfile.write(newserial_crypt)
+                setserial=0
+            elif (loc==0x3f87) and (setpw>-1):
+                destfile.write(newpwlen_crypt)
+            elif (loc>=0x3f88) and (loc<0x3fff) and (setpw>-1):
+                if setpw==1:
+                    destfile.write(newpw_crypt)
+                setpw=0
+            else:
+                destfile.write(byte)
+
+            loc = loc + 1
