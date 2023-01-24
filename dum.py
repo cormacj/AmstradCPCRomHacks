@@ -75,4 +75,5 @@ with open(dumpname, "rb") as f:
 
         loc = loc + 1
 
+print (locstr+": "+hexpart+"  "+strpart)
 print("\n")
