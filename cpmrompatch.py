@@ -21,36 +21,17 @@
 
 #This program is designed to patch the Graduate software CPM+ rom for Amstrad CPC systems
 
-#1ff0: (C)1988 GRADUATE SOFTWARE
-
-#xor: 0x4e
-#3f00-3f17: name
-#3f19-3f5f: address
-#3f71-3f7d: serial
-
-#xor: 0xaa
-#3f87: password length(?)
-#3f88-3fff: password
-
 import sys
 
 # function definition
 def xorcrypt(data,xorval,padlevel):
-    #print(data,len(data))
     result=""
     for element in range(0, len(data)):
         result=result+chr(ord(data[element])^xorval)
     #pad the rest with zeroes
     for pad in range(len(data)+1, padlevel):
         result=result+chr(0^xorval) #pad out with zeroes
-    #print (data)
-    print (result)
     result=bytes(result,'latin-1')
-    print (result)
-    # print(padlevel)
-    # print (len(data))
-    # print (len(result))
-    # print(data)
     return result
 
 def validate(what,srcstring, length):
@@ -137,8 +118,7 @@ for param in values:
         setpw=1 #enable password setting
         newpw=sys.argv[param+1] #grab Password
         newpwlen_crypt=len(newpw)^0xaa
-        print(newpw)
-        newpw_crypt=xorcrypt(newpw,0xaa,16)
+        newpw_crypt=xorcrypt(newpw,0xaa,17) #adding an extra byte to padding because it throws off the rom size otherwise
         validate("password",newpw,16)
     elif sys.argv[param] == "--name":
         setname=1
@@ -201,7 +181,7 @@ with open(src, "rb") as f:
             char=value^0x4e
             if char>31 and char<127:
                 address=address+chr(char)
-        if (loc>0x3f71) and (loc<0x3f7d):
+        if (loc>0x3f70) and (loc<0x3f7d):
             char=value^0x4e
             if char>31 and char<127:
                 serial=serial+chr(char)
@@ -270,29 +250,27 @@ elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
                 if setaddr==1:
                     destfile.write(newaddress_crypt)
                 setaddr=0
-            elif (loc>0x3f70) and (loc<0x3f7c) and (setserial>-1):
+            elif (loc>0x3f70) and (loc<0x3f7d) and (setserial>-1):
                 if setserial==1:
                     destfile.write(newserial_crypt)
                 setserial=0
             elif (loc==0x3f87) and (setpw>-1):
-                print("newpw len=",newpwlen_crypt)
-                print("newpw len decode=",newpwlen_crypt^0xaa)
                 num=newpwlen_crypt.to_bytes(1,byteorder='big')
                 destfile.write(bytes(num))
             elif (loc>=0x3f88) and (loc<0x3f98) and (setpw>-1):
                 if setpw==1:
-                    print(newpw_crypt)
+                    #print(newpw_crypt)
                     # print(len(newpw_crypt))
                     for l in range(0, len(newpw_crypt)):
-                        print(l)
+                        #print(l)
                         #print(ord(newpw_crypt[l]))
                         num=newpw_crypt[l]
-                        print(num)
+                        #print(num)
                         if num==0xaa:
                             num=0x4e
                         encbyte=num.to_bytes(1,byteorder='big')
                         #print(chr(newpw_crypt[l]^0xaa))
-                        print(encbyte)
+                        #print(encbyte)
                         destfile.write(encbyte)
                 setpw=0
             else:
