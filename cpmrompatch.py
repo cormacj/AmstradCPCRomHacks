@@ -55,10 +55,6 @@ def dumphelp():
     quit()
     return
 argc = len(sys.argv)
-# print(argc)
-# print(sys.argv[1])
-# print(sys.argv[2])
-# print(sys.argv[3])
 
 loc = 0
 name =""
@@ -98,15 +94,6 @@ if argc <= 1:
     dumphelp
 
 values=range(argc)
-
-#xor: 0x4e
-#3f00-3f17: name
-#3f19-3f5f: address
-#3f71-3f7d: serial
-
-#xor: 0xaa
-#3f87: password length(?)
-#3f88-3fff: password
 
 #Process the command line parameters
 for param in values:
@@ -151,24 +138,7 @@ if sourceset==-1:
 with open(src, "rb") as f:
     #print("Reading from: "+src)
     while (byte := f.read(1)):
-        # Do stuff with byte.
-        #print(loc%64)
-        #print(".",end='')
         value=int.from_bytes(byte,"little")
-        #value=value^0xaa #password
-        #value=value^0x4e #name etc
-
-
-        #1ff0: (C)1988 GRADUATE SOFTWARE
-
-        #xor: 0x4e
-        #3f00-3f17: name
-        #3f19-3f5f: address
-        #3f71-3f7d: serial
-
-        #xor: 0xaa
-        #3f87: password length(?)
-        #3f88-3fff: password
         if (loc>=0x1ff0) and (loc<=0x2009):
             char=value^0x00
             if char>31 and char<127:
@@ -210,8 +180,6 @@ if display==1:
 #We're going to update somethings
 elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
     #We're going to be updating things, make sure we know where we're writing to
-    # if display==-1:
-    #     dumphelp()
     if destset==-1:
         print("Error: You must specify a destination ROM file using --dest, eg --dest NEWROM.rom")
         quit()
@@ -226,21 +194,6 @@ elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
     with open(src, "rb") as srcfile:
         #print("Reading from: "+src)
         while (byte := srcfile.read(1)):
-
-            #print(".",end='')
-            #
-            # if (loc>=0x1ff0) and (loc<=0x2009):
-            #     char=value^0x00
-            #     if char>31 and char<127:
-            #         copyright=copyright+chr(char)
-                    #3f00-3f17: name
-                    #3f19-3f5f: address
-                    #3f71-3f7d: serial
-
-                    #xor: 0xaa
-                    #3f87: password length(?)
-                    #3f88-3fff: password
-
             if (loc>=0x3f00) and (loc<=0x3f16) and (setname>-1):
                 #Name, pad(16)
                 if setname==1:
@@ -259,18 +212,11 @@ elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
                 destfile.write(bytes(num))
             elif (loc>=0x3f88) and (loc<0x3f98) and (setpw>-1):
                 if setpw==1:
-                    #print(newpw_crypt)
-                    # print(len(newpw_crypt))
                     for l in range(0, len(newpw_crypt)):
-                        #print(l)
-                        #print(ord(newpw_crypt[l]))
                         num=newpw_crypt[l]
-                        #print(num)
                         if num==0xaa:
                             num=0x4e
                         encbyte=num.to_bytes(1,byteorder='big')
-                        #print(chr(newpw_crypt[l]^0xaa))
-                        #print(encbyte)
                         destfile.write(encbyte)
                 setpw=0
             else:
