@@ -197,14 +197,17 @@ elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
             if (loc>=0x3f00) and (loc<=0x3f16) and (setname>-1):
                 #Name, pad(16)
                 if setname==1:
+                    print("Setting Name...")
                     destfile.write(newname_crypt)
                 setname=0 #don't need to rewrite, 0=written
             elif (loc>0x3f19) and (loc<0x3f5d) and (setaddr>-1):
                 if setaddr==1:
+                    print("Setting Address...")
                     destfile.write(newaddress_crypt)
                 setaddr=0
             elif (loc>0x3f70) and (loc<0x3f7d) and (setserial>-1):
                 if setserial==1:
+                    print("Setting Serial Number...")
                     destfile.write(newserial_crypt)
                 setserial=0
             elif (loc==0x3f87) and (setpw>-1):
@@ -212,6 +215,7 @@ elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
                 destfile.write(bytes(num))
             elif (loc>=0x3f88) and (loc<0x3f98) and (setpw>-1):
                 if setpw==1:
+                    print ("Setting Password...")
                     for l in range(0, len(newpw_crypt)):
                         num=newpw_crypt[l]
                         if num==0xaa:

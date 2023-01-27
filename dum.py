@@ -39,7 +39,7 @@ else:
     dumpname=sys.argv[1]
     xorval=int(sys.argv[2],16)
 
-print ("xorval=",xorval)
+#print ("xorval=",xorval)
 
 loc = 0
 hexpart=""
