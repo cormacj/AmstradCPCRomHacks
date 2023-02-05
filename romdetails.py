@@ -107,31 +107,6 @@ with open(src, "rb") as f:
                 cmdend=0
             if (value>31) and (value<127) and cmdend==-1:
                 command=command+chr(value)
-        #print (hex(value),chr(value))
-        #print(hex(value))
-        # if (loc>=0x1ff0) and (loc<=0x2009):
-        #     char=value^0x00
-        #     if char>31 and char<127:
-        #         copyright=copyright+chr(char)
-        # if (loc>=0x3f00) and (loc<=0x3f16):
-        #     char=value^0x4e
-        #     if char>31 and char<127:
-        #         name=name+chr(char)
-        # if (loc>0x3f19) and (loc<0x3f5e):
-        #     char=value^0x4e
-        #     if char>31 and char<127:
-        #         address=address+chr(char)
-        # if (loc>0x3f70) and (loc<0x3f7d):
-        #     char=value^0x4e
-        #     if char>31 and char<127:
-        #         serial=serial+chr(char)
-        # if (loc==0x3f87):
-        #     char=value^0xaa
-        #     pwlength=int(char)
-        # if (loc>=0x3f88) and (loc<0x3fff):
-        #     char=value^0xaa
-        #     if char>31 and char<127:
-        #         password=password+chr(char)
         loc = loc + 1
 
 cmds=(addrh*256)+addrl
