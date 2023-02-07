@@ -45,35 +45,43 @@ loc = 0
 hexpart=""
 strpart=""
 locstr=(str(hex(loc)).split("x")[1]).rjust(4,"0")
+try:
+    with open(dumpname, "rb") as f:
+        while (byte := f.read(1)):
+            # Do stuff with byte.
+            #print(loc%64)
+            value=int.from_bytes(byte,"little")
+            #value=value^0xaa #password
+            #value=value^0x4e #name etc
+            value=value^xorval
+            hexsingle=(str(hex(value)).split("x")[1]).rjust(2,"0") #covert the value to hex and strip off the 0x part and pad to double digits, ie 8 becomes 0x8 and ends as 08
 
-with open(dumpname, "rb") as f:
-    while (byte := f.read(1)):
-        # Do stuff with byte.
-        #print(loc%64)
-        value=int.from_bytes(byte,"little")
-        #value=value^0xaa #password
-        #value=value^0x4e #name etc
-        value=value^xorval
-        hexsingle=(str(hex(value)).split("x")[1]).rjust(2,"0") #covert the value to hex and strip off the 0x part and pad to double digits, ie 8 becomes 0x8 and ends as 08
+            if (loc>0 and (loc%16)==0):
+                print (locstr+": "+hexpart+"  "+strpart)
+                hexpart=""
+                strpart=""
+                locstr=(str(hex(loc)).split("x")[1]).rjust(4,"0")
+            if (value>31 and value<127):
+                strsingle=chr(value)
+            else:
+                strsingle="."
+                #print(".",end='')
+            if hexpart=="":
+                hexpart=hexsingle+" "
+                strpart=strsingle
+            else:
+                hexpart=hexpart+hexsingle+" "
+                strpart=strpart+strsingle
 
-        if (loc>0 and (loc%16)==0):
-            print (locstr+": "+hexpart+"  "+strpart)
-            hexpart=""
-            strpart=""
-            locstr=(str(hex(loc)).split("x")[1]).rjust(4,"0")
-        if (value>31 and value<127):
-            strsingle=chr(value)
-        else:
-            strsingle="."
-            #print(".",end='')
-        if hexpart=="":
-            hexpart=hexsingle+" "
-            strpart=strsingle
-        else:
-            hexpart=hexpart+hexsingle+" "
-            strpart=strpart+strsingle
-
-        loc = loc + 1
-
-print (locstr+": "+hexpart+"  "+strpart)
-print("\n")
+            loc = loc + 1
+    print (locstr+": "+hexpart+"  "+strpart)
+    print("\n")
+except FileNotFoundError:
+    msg = "Sorry, the file "+ dumpname + " doesn't exist."
+    print(msg)
+except BrokenPipeError:
+    #Just exit nicly so things like piping to head or more doesn't end ugly
+    quit()
+finally:
+    #just quit
+    quit()
