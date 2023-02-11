@@ -42,6 +42,7 @@ if argc <= 1:
     dumphelp()
 
 values=range(argc)
+firstentry="Rom Name: "
 
 #Process the command line parameters
 for param in values:
@@ -100,9 +101,10 @@ with open(src, "rb") as f:
                     if command=="":
                         print("Hidden Command:",hex(value-128))
                 else:
-                    command=command+chr(value-128)
+                    command=firstentry+command+chr(value-128)
                     print (command)
                     command=""
+                    firstentry="" 
             if value==0:
                 cmdend=0
             if (value>31) and (value<127) and cmdend==-1:
