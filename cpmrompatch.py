@@ -50,11 +50,18 @@ def dumphelp():
     print ("    --address \"<Address>\" - Sets the address of the ROM owner")
     print ("    --serial <serial number> - Sets the serial number of the ROM")
     print ("    --password <password> - Sets the password for |PASSWORD\n")
+    print ("You can also just pass a filename and it will display the details for that ROM")
+    print ("  eg cpmrompatch.py CPM1.ROM\n")
     print("Examples:")
     print("   cpmrompatch.py --src CPM1.rom --dest CPM1-updated.rom --name \"John Smith\" --address \"123 Acacia Ave, Sometown\"")
+    print("\n")
     quit()
     return
+
 argc = len(sys.argv)
+
+if argc == 1:
+    dumphelp()
 
 loc = 0
 name =""
@@ -89,9 +96,6 @@ setaddr=-1
 sourceset=-1
 setserial=-1
 destset=-1
-
-if argc <= 1:
-    dumphelp
 
 values=range(argc)
 
@@ -129,10 +133,13 @@ for param in values:
         dest = sys.argv[param+1]
         destset=1
 
-#Make sure we have a source or we error out
+#If no parameters then, we'll assume it was just a filename that was passed, so we switch to display detail mode
 if sourceset==-1:
-    print("Error: You must specify a source rom name using --src, eg --src CPM1.rom")
-    quit()
+    # OK, so if there is no --src, we're going to assume that param 1 is the filename and we're
+    # just doing to do a display details eg same as --src fn.rom --display
+    src=sys.argv[1]
+    sourceset=1
+    display=1
 
 #Scan the source rom
 with open(src, "rb") as f:
@@ -175,9 +182,9 @@ if display==1:
     print("Name:     "+name)
     print("Address:  "+address)
     #print("Password length: ",pwlength)
-    print("Password: "+password+" ("+str(pwlength)+" characters)")
+    print("Password: "+password+" ("+str(pwlength)+" characters)\n")
 
-#We're going to update somethings
+#We're going to update some things
 elif (setpw==1 or setname==1 or setaddr==1 or sourceset==1):
     #We're going to be updating things, make sure we know where we're writing to
     if destset==-1:
