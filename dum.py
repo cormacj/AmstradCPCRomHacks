@@ -27,23 +27,32 @@ import sys
 argc = len(sys.argv)
 #print(argc)
 if argc <= 1 or sys.argv[1]=="-h" or sys.argv[1]=="--help":
-    print ("Usage: dum.py romfile.rom <xor hex value>\nExample: dum.py CPM1.rom 0x4e")
+    print ("Usage: dum.py romfile.rom -x <xor hex value>")
+    print ("   or: dum.py romfile.rom -c <address offset value>\n")
     print ("  Known XOR values are:")
     print ("    0xaa - password")
-    print ("    0x4e - name, address, serial etc")
+    print ("    0x4e - name, address, serial etc\n")
+    print ("Examples:\ndum.py CPM1.rom -x 0x4e")
+    print ("dum.py Rodos_v2_17.ROM -o 0xc000")
     quit()
 elif argc == 2:
     dumpname=sys.argv[1]
     xorval=0 #xor 0 is no xor
+    romoffsetval=0 #dumps will show as 0x0000
 else:
+    xorval=0
+    romoffsetval=0
     dumpname=sys.argv[1]
-    xorval=int(sys.argv[2],16)
+    #We're going to parse what extras we warranty
+    if sys.argv[2]=='-x':
+            xorval=int(sys.argv[3],16)
+    if sys.argv[2]=='-o':
+            romoffsetval=int(sys.argv[3],16)
 
-#print ("xorval=",xorval)
-
-loc = 0
+loc = romoffsetval
 hexpart=""
 strpart=""
+#print (dumpname)
 locstr=(str(hex(loc)).split("x")[1]).rjust(4,"0")
 try:
     with open(dumpname, "rb") as f:
@@ -56,15 +65,15 @@ try:
             value=value^xorval
             hexsingle=(str(hex(value)).split("x")[1]).rjust(2,"0") #covert the value to hex and strip off the 0x part and pad to double digits, ie 8 becomes 0x8 and ends as 08
 
-            if (loc>0 and (loc%16)==0):
+            if (loc>romoffsetval and (loc%16)==0):
                 print (locstr+": "+hexpart+"  "+strpart)
                 hexpart=""
                 strpart=""
                 locstr=(str(hex(loc)).split("x")[1]).rjust(4,"0")
-            if (value>31 and value<127):
+            if (value>31 and value<127): #It's human readable, use what we read
                 strsingle=chr(value)
             else:
-                strsingle="."
+                strsingle="." #it's not readable, print a dot
                 #print(".",end='')
             if hexpart=="":
                 hexpart=hexsingle+" "
@@ -72,8 +81,8 @@ try:
             else:
                 hexpart=hexpart+hexsingle+" "
                 strpart=strpart+strsingle
-
             loc = loc + 1
+
     print (locstr+": "+hexpart+"  "+strpart)
     print("\n")
 except FileNotFoundError:
@@ -81,7 +90,9 @@ except FileNotFoundError:
     print(msg)
 except BrokenPipeError:
     #Just exit nicly so things like piping to head or more doesn't end ugly
+    #print ("Broken pipe error")
     quit()
 finally:
+    #print ("Quitting nicely")
     #just quit
     quit()

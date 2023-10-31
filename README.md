@@ -7,8 +7,10 @@ Currently the two scripts here are aimed at the Graduate Software CPM+ roms. For
 
 ## dum.py
 
-  This dumps a .ROM file showing any printable ascii characters and strings. It takes an optional xor value for looking
-  at the encoded information in Graduate Software CPM+ roms.
+  This dumps a .ROM file showing any printable ascii characters and strings.
+  There are two options parameters that can be used.
+
+  -x <xor value> This is useful for looking at the encoded information in Graduate Software CPM+ roms.
 ```
   Usage: dum.py romfile.rom <xor hex value>
   Example: dum.py CPM1.rom 0x4e
@@ -16,6 +18,7 @@ Currently the two scripts here are aimed at the Graduate Software CPM+ roms. For
       0xaa - password
       0x4e - name, address, serial etc
 ```
+  -o <offset value> This is useful if you are reverse engineering a ROM and want to know where strings occur. Roms usually start at 0xC000
 ## cpmrompatch.py
 
   This patches the first CPM rom so you can use your own name, address, password etc
