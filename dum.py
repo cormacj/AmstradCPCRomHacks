@@ -28,7 +28,7 @@ argc = len(sys.argv)
 #print(argc)
 if argc <= 1 or sys.argv[1]=="-h" or sys.argv[1]=="--help":
     print ("Usage: dum.py romfile.rom -x <xor hex value>")
-    print ("   or: dum.py romfile.rom -c <address offset value>\n")
+    print ("   or: dum.py romfile.rom -o <address offset value>\n")
     print ("  Known XOR values are:")
     print ("    0xaa - password")
     print ("    0x4e - name, address, serial etc\n")
