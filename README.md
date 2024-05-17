@@ -3,8 +3,40 @@ Just a repository of scripts for working with Amstrad CPC Roms
 
 All files are Python3
 
-Currently the two scripts here are aimed at the Graduate Software CPM+ roms. For more details see here: https://www.cpcwiki.eu/index.php/Graduate_Software
+## romdetails.py
 
+This script will display the name, version and command list for a ROM, including any
+
+hidden commands, meaning any that can only be called from code.
+
+Some roms have a really disordered list of commands that make it hard to find a given
+
+command, so I added a -c option that only displays the commands so that these can be
+
+easily sorted with another command.
+
+```
+romdetails.py v2.00
+
+Usage:
+This will display the RSX commands (if any) available in a ROM:
+  romdetails.py SourceROM.rom
+
+
+Examples:
+	./romdetails.py TestROM.rom
+	Rom type: Background
+	Version:  1.21
+
+	TESTROM
+	RSX1
+	RSX2
+	Hidden Command: 0x0
+	Hidden Command: 0x1
+
+-h or --help - this message
+-c or --commandonly - only list the commands
+```
 ## dum.py
 
   This dumps a .ROM file showing any printable ascii characters and strings.
@@ -18,13 +50,15 @@ Currently the two scripts here are aimed at the Graduate Software CPM+ roms. For
       0xaa - password
       0x4e - name, address, serial etc
 ```
-  Usage: dum.py romfile.rom -o <offset value> 
+  Usage: dum.py romfile.rom -o <offset value>
      This is useful if you are reverse engineering a ROM and want to know where strings occur. Roms usually start at 0xC000
   Example: dum.py CPM1.ROM -o 0xc000
 
 ## cpmrompatch.py
 
-  This patches the first CPM rom so you can use your own name, address, password etc
+This was written for patching Graduate Software CPM+ roms. For more details see here: https://www.cpcwiki.eu/index.php/Graduate_Software
+
+This patches the first CPM rom so you can use your own name, address, password etc
 ```
 Usage:
 To display the details of what is stored in the ROM:
