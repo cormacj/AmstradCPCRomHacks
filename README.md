@@ -5,15 +5,9 @@ All files are Python3
 
 ## romdetails.py
 
-This script will display the name, version and command list for a ROM, including any
+This script will display the name, version and command list for a ROM, including any hidden commands, meaning any that can only be called from code.
 
-hidden commands, meaning any that can only be called from code.
-
-Some roms have a really disordered list of commands that make it hard to find a given
-
-command, so I added a -c option that only displays the commands so that these can be
-
-easily sorted with another command.
+Some roms have a really disordered list of commands that make it hard to find a given command, so I added a -c option that only displays the commands so that these can be easily sorted with another command.
 
 ```
 romdetails.py v2.00
