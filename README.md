@@ -3,6 +3,8 @@ Just a repository of scripts for working with Amstrad CPC Roms
 
 All files are Python3
 
+If you have requests or bug reports, please open [a GitHub issue here](https://github.com/cormacj/AmstradCPCRomHacks/issues/new)
+
 ## romdetails.py
 
 This script will display the name, version and command list for a ROM, including any hidden commands, meaning any that can only be called from code.
