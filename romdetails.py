@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#TODO: Add a flag and command to only print the rom commands
 
 # Copyright (c) 2023,2024 Cormac McGaughey
 #
@@ -61,12 +60,82 @@ def dumphelp():
     print ("-c or --commandonly - only list the commands, suitable for sorting\n")
     quit()
     return
+
+def graduaterom(gradrom):
+    # Special section, just to decode Graduate CP/M accessory ROMs
+    # - The first 0x10 bytes are a name (must start with "G")
+    # - From 0x11 to a $ sign is the second part of the name.
+    # - From the $ sign to 0x30 is version details
+    # From 0x100 to 0x200 is the list of apps within the ROM.
+    # This consists of an array of 0x10 bytes consisting of:
+    # - Bytes 0 to 8 - Program Name.
+    # - Bytes 8 to 0x10 - Progam details for rom (not used here)
+    #
+    loc=0
+    appcounter=0
+    romvalue=""
+    appname=""
+    namedone=0
+    verdone=0
+    with open(gradrom, "rb") as g:
+        #print("Reading from: "+src)
+        while (gradbyte := g.read(1)):
+            loc=loc+1
+            value=int.from_bytes(gradbyte,"little")
+            if namedone==0 and value==ord('$'):
+                #Split the string in two parts.
+                if commandonly==0:
+                    print("Name:\t ",romvalue[0:0x10])
+                    print("\t ",romvalue[0x10:0x99])
+                namedone=1
+                romvalue=""
+            elif verdone==0 and value==0:
+                #Version info
+                if commandonly==0:
+                    print("Version: ",romvalue)
+                verdone=1
+            elif loc>0xff and loc<0x200:
+                # Rom APP details section.
+                if loc==0x100:
+                    #start of Apps list. Initialise some stuff
+                    romvalue=""
+                    appcounter=0
+                    if commandonly==0:
+                        print("Apps:")
+                    for files in range(0,0x10,1):
+                        #The program name - the bit we care about.
+                        name=""
+                        for nameloc in range(0,9,1):
+                            gradbyte = g.read(1)
+                            value=int.from_bytes(gradbyte,"little")
+                            if value != 0xff:
+                                name=name+parsebyte(value)
+                        if name != "":
+                            print(name)
+                        for nameloc in range(9,0x10,1):
+                            #just discard the rest of the section, so we can get the next filename
+                            gradbyte = g.read(1)
+            else:
+                if value>31: #skip any cr/lf
+                    romvalue=romvalue+parsebyte(value)
+    g.close()
+
+    return
+
 argc = len(sys.argv)
 
 #-------------------------
 loc = 0
 commandonly=0 #Don't print versions etc, only commands
-myversion="v2.00"
+myversion="v2.50"
+addrl=0
+addrh=0
+rsx=0xffff
+cmdend=-1 #flag when we reached the end of the commands
+hiddencmd=0 #flag for hidden commands
+romname=1 #flag for the rom name (it looks like an RSX command, but its not.)
+command="" #string used when building commands from the ROM
+version="" #string used when decoding the ROM version details
 #--------------------------
 src=""
 
@@ -90,15 +159,6 @@ if sourceset==-1:
     print("Error: You must specify a source rom filename")
     quit()
 
-addrl=0
-addrh=0
-rsx=0xffff
-cmdend=-1 #flag when we reached the end of the commands
-hiddencmd=0 #flag for hidden commands
-romname=1 #flag for the rom name (it looks like an RSX command, but its not.)
-command="" #string used when building commands from the ROM
-version="" #string used when decoding the ROM version details
-
 #Scan the source rom
 with open(src, "rb") as f:
     #print("Reading from: "+src)
@@ -114,9 +174,20 @@ with open(src, "rb") as f:
                     print("Rom type:\t Extension Foreground")
                 case 0x80:
                     print("Rom type:\t Internal, eg BASIC")
+                case 0x47:
+                    print("Rom type: Graduate Software CP/M Accessory ROM")
+                    loc=0x4000 #this will skip processing the rest of this data as a normal rom
+                    f.close()
+                    graduaterom(src)
+                    exit(0)
                 case _:
                     print("Rom type:\t Unknown, id=",hex(value))
-            #print("\n")
+        if (loc==0x0000) and value==0x47 and commandonly==1:
+            #handle special case ROM with commandonly enabled
+            f.close()
+            graduaterom(src)
+            exit(0)
+
         if (loc==0x0001) and (commandonly==0):
             version=version+chr(versioncheck(value)+48)+"."
         if (loc==0x0002) and (commandonly==0):
@@ -126,7 +197,6 @@ with open(src, "rb") as f:
             print ("Version:\t",version)
         if (loc==0x0004):
             addrl=value
-            #print(hex(value))
         if (loc==0x0005):
             addrh=value
             rsx=((addrh*256)+addrl)-0xc000
@@ -161,6 +231,4 @@ with open(src, "rb") as f:
                     command=""
                     hiddencmd=0
         loc = loc + 1
-
-cmds=(addrh*256)+addrl
-#print(hex(cmds))
+f.close()

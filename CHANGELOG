@@ -1,0 +1,4 @@
+romdetails.py:
+    v2.50: Adds code for displaying Graduate Software accessory rom details.
+    v2.00: Rewrite for better parsing of ROM. Fixes hidden command extraction.
+    v1.00: Initial quick script
