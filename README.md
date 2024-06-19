@@ -88,3 +88,50 @@ You can also just pass a filename and it will display the details for that ROM
 Examples:
    cpmrompatch.py --src CPM1.rom --dest CPM1-updated.rom --name "John Smith" --address "123 Acacia Ave, Sometown"
 ```
+
+## make_accessory_rom.py
+This script will build an accessory ROM. It can also extract a .COM file from a prebuilt ROM file.
+
+The name of the ROM file is required.
+
+If you are extracting a .COM using `-e` then all the other possible arguments will be ignored if supplied.
+
+```
+usage: ./make_accessory_rom.py [-h] [-i "ROM ID String"] [-n "ROM Description"] [-v "ROM Version string"] [-e [filename, or blank for all files ...]] ROM_filename [.COM_file ...]
+
+This is a utility to build accessory ROMs for Amstrad Graduate Software CP/M ROMs
+
+options:
+  -h, --help            show this help message and exit
+
+Required:
+  A name for a ROM file is required
+
+  ROM_filename          This is the name of the ROM file that you are creating.
+
+Building:
+  These options relate to building a ROM
+
+  .COM_file             This must be a CP/M program.
+  -i "ROM ID String", --id "ROM ID String"
+                        ROM Identification. It must start with G, and be no more than 16 characters. The default is "Grad ROM 06/2024"
+  -n "ROM Description", --name "ROM Description"
+                        This is the name that will be shown in commands such as |OHELP or romcat. It must be no more than 32 characters.
+  -v "ROM Version string", --romversion "ROM Version string"
+                        This is a string that will dictate the version of the rom.
+
+Extracting:
+  These options relate to extracting files from a ROM
+
+  -e [filename, or blank for all files ...], --extract [filename, or blank for all files ...]
+                        Extract files from a ROM.
+
+Note: -e can only be used by itself and not with any other argument.
+
+Examples:
+  To recreate the original accessory rom:
+    ./make_accessory_rom.py CPM_ACC1.ROM NSWEEP.COM FORMAT.COM PCW.COM RUN.COM UNERA.COM D.COM -i "Graduate (C)1988" -n "CP/M Accessory Rom 1" -v "VER 2.30 "
+
+  Extract PCW.COM from CPM_ACC1.ROM:
+    ./make_accessory_rom.py CPM_ACC1.ROM -e PCW
+````
