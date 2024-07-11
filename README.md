@@ -77,6 +77,7 @@ To display the details of what is stored in the ROM:
 
 To update the ROM, you must specify --src and --dest and one of the following:
   cpmrompatch.py --src SourceROM.rom --dest DestROM.rom
+    --quiet - Disable the noisy, large default ROM boot message and replace it with a short version
     --name "<Name>" - Sets the name of the ROM owner
     --address "<Address>" - Sets the address of the ROM owner
     --serial <serial number> - Sets the serial number of the ROM
