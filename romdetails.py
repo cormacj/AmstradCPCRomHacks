@@ -58,6 +58,7 @@ def dumphelp():
     print("\t./romdetails.py TestROM.rom\n\tRom type: Background\n\tVersion:  1.21\n\n\tTESTROM\n\tRSX1\n\tRSX2\n\tHidden Command: 0x0\n\tHidden Command: 0x1\n")
     print ("-h or --help - this message")
     print ("-c or --commandonly - only list the commands, suitable for sorting\n")
+    print ("-w or --wiki - output the commands in a wikitable format, suitable for pasting into a wiki")
     quit()
     return
 
@@ -133,6 +134,9 @@ addrh=0
 rsx=0xffff
 cmdend=-1 #flag when we reached the end of the commands
 hiddencmd=0 #flag for hidden commands
+wiki=0 #flag for wiki output
+wikitable=0 #table for wikitable format
+wikispace=""
 romname=1 #flag for the rom name (it looks like an RSX command, but its not.)
 command="" #string used when building commands from the ROM
 version="" #string used when decoding the ROM version details
@@ -150,6 +154,9 @@ for param in values:
         dumphelp()
     elif (sys.argv[param] =="-c") or (sys.argv[param]=="--commandonly"):
         commandonly=1
+    elif (sys.argv[param] =="-w") or (sys.argv[param]=="--wiki"):
+        wiki=1
+        wikispace=" " #Add a space for formatting
     else:
         src = sys.argv[param]
         sourceset=1
@@ -159,6 +166,8 @@ if sourceset==-1:
     print("Error: You must specify a source rom filename")
     quit()
 
+print ("Rom Details:")
+
 #Scan the source rom
 with open(src, "rb") as f:
     #print("Reading from: "+src)
@@ -167,15 +176,15 @@ with open(src, "rb") as f:
         if (loc==0x0000) and (commandonly==0):
             match value:
                 case 0:
-                    print("Rom type:\t External Foreground")
+                    print(wikispace+"Rom type:\t External Foreground")
                 case 1:
-                    print("Rom type:\t Background")
+                    print(wikispace+"Rom type:\t Background")
                 case 2:
-                    print("Rom type:\t Extension Foreground")
+                    print(wikispace+"Rom type:\t Extension Foreground")
                 case 0x80:
-                    print("Rom type:\t Internal, eg BASIC")
+                    print(wikispace+"Rom type:\t Internal, eg BASIC")
                 case 0x47:
-                    print("Rom type: Graduate Software CP/M Accessory ROM")
+                    print(wikispace+"Rom type: Graduate Software CP/M Accessory ROM")
                     loc=0x4000 #this will skip processing the rest of this data as a normal rom
                     f.close()
                     graduaterom(src)
@@ -194,7 +203,7 @@ with open(src, "rb") as f:
             version=version+chr(versioncheck(value)+48)
         if (loc==0x0003) and (commandonly==0):
             version=version+chr(versioncheck(value)+48)
-            print ("Version:\t",version)
+            print (wikispace+"Version:\t",version)
         if (loc==0x0004):
             addrl=value
         if (loc==0x0005):
@@ -216,19 +225,33 @@ with open(src, "rb") as f:
                 if romname==1:
                     #First part of the RSX table is actually the ROM name.
                     if (commandonly==0):
-                        print ("Rom Name:\t",command,"\n\nCommands:")
+                        print (wikispace+"Rom Name:\t",command,"\n\nCommands:")
                     romname=0 #We only ever do this once.
                     command=""
                     hiddencmd=0
                 else:
                     #Otherwise we print what we decoded.
                     if (hiddencmd==1):
-                        #If hidden, highlight that.
-                        print(" Hidden Command:",command)
+                        if wiki==1:
+                            if wikitable==0:
+                                print("{|\n|-\n! Command !! Description")
+                                wikitable=1
+                            print ("|-\n| Hidden Command: "+command+"||")
+                        else:
+                            #If hidden, highlight that.
+                            print(" Hidden Command:",command)
                     else:
-                        print (" "+command)
+                        if wiki==1:
+                            if wikitable==0:
+                                print("{|\n|-\n! Command !! Description")
+                                wikitable=1
+                            print ("|-\n|"+command+"||")
+                        else:
+                            print (" "+command)
                     #reset our flags for the next command, and reset the string.
                     command=""
                     hiddencmd=0
         loc = loc + 1
 f.close()
+if wiki==1:
+    print ("|}")
