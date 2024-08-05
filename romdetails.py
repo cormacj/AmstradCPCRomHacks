@@ -128,7 +128,7 @@ argc = len(sys.argv)
 #-------------------------
 loc = 0
 commandonly=0 #Don't print versions etc, only commands
-myversion="v2.50"
+myversion="v2.51"
 addrl=0
 addrh=0
 rsx=0xffff

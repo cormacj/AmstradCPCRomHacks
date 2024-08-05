@@ -32,6 +32,7 @@ Examples:
 
 -h or --help - this message
 -c or --commandonly - only list the commands
+-w or --wiki - output the commands in a wikitable format, suitable for pasting into a wiki
 ```
 The script will also decode Graduate Software Accessory ROMS:
 ```
@@ -41,12 +42,12 @@ Name:	  Graduate (C)1988
 	  CP/M Accessory Rom 1
 Version:  VER 2.30
 Apps:
-NSWEEP   
-FORMAT   
-PCW      
-RUN      
-UNERA    
-D        
+NSWEEP
+FORMAT
+PCW
+RUN
+UNERA
+D
 ```
 ## dum.py
 
