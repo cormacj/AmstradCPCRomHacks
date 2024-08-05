@@ -12,7 +12,7 @@ This script will display the name, version and command list for a ROM, including
 Some roms have a really disordered list of commands that make it hard to find a given command, so I added a -c option that only displays the commands so that these can be easily sorted with another command.
 
 ```
-romdetails.py v2.50
+romdetails.py v2.51
 
 Usage:
 This will display the RSX commands (if any) available in a ROM:
