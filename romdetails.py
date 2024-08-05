@@ -57,8 +57,8 @@ def dumphelp():
     print("Examples:")
     print("\t./romdetails.py TestROM.rom\n\tRom type: Background\n\tVersion:  1.21\n\n\tTESTROM\n\tRSX1\n\tRSX2\n\tHidden Command: 0x0\n\tHidden Command: 0x1\n")
     print ("-h or --help - this message")
-    print ("-c or --commandonly - only list the commands, suitable for sorting\n")
-    print ("-w or --wiki - output the commands in a wikitable format, suitable for pasting into a wiki")
+    print ("-c or --commandonly - only list the commands, suitable for sorting")
+    print ("-w or --wiki - output the commands in a wikitable format, suitable for pasting into a wiki\n")
     quit()
     return
 
