@@ -11,7 +11,7 @@ WHITE_PIXEL: Pixel = (255, 255, 255)
 
 HEADER = b'\x89PNG\r\n\x1A\n'
 printermodel="DMP2000"
-
+printerbit=7
 def string_to_binary(st : str):
     return [bin(ord(i))[2:].zfill(8) for i in st]
 
@@ -38,6 +38,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     print (len(bitmap), len(ascii_text))
     dataloc=0
     gfxdata=0
+
     for printout in range(len(ascii_text)):
         # print ("Printout=",printout)
         #For this next bit, we'll try and add the data.
@@ -48,6 +49,9 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
             #Right now it's more about just not processing control codes as data
             match printermodel:
                 case "DMP1":
+                    #This is a 7x5 print head
+                    #60 dpi
+                    printerbit=8 #Technically 7, but py range starts at upperlimit-1
                     match ord(ascii_text[printout]):
                         case 0x0:
                             #Sometimes it seems like programs dump extra zeros, or maybe its an emulator.
@@ -56,17 +60,15 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                             skipcount=1
                         case 0x0a:
                             #CR+LF
-                            skipcount=2
+                            skipcount=1
                             skip=1
                             w=0
                             h=h+7 #8 because we've written 7 bits down
-                            print ("0xa found")
                         case 0x0d:
                             #CR or CR+LF (selectable)
                             skipcount=2
                             skip=1
                             w=0
-                            print ("0xd found")
                         case 0x14:
                             #Also CR, oddly enough
                             skipcount=2
@@ -106,7 +108,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                             gfx=ord(ascii_text[printout+2])
                             b=string_to_binary(ascii_text[gfx])
                             for l in range(amt):
-                                for bitloop in range(7,1,-1):
+                                for bitloop in range(printerbut,1,-1):
                                     #print (b[0])
                                     tmp=b[0][bitloop]
                                     # So each bit is a row down.
@@ -119,85 +121,110 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         #print(".", end="")
                                 w=w+1
                 case "DMP2000":
-                    match ord(ascii_text[printout]):
-                        case 0x0:
-                            #Sometimes it seems like programs dump extra zeros, or maybe its an emulator.
-                            #in any case, we're going to ignore it
-                            skip=1
-                            skipcount=1
-                        case 0x08:
-                            #Backspace
-                            skipcount=1
-                            skip=1
-                            w=w-1
-                        case 0x09:
-                            skipcount=1
-                            skip=1
-                            w=w+8 #I dunno. I'm guessing here. TODO
-                        case 0x0a:
-                            #CR+LF
-                            skipcount=2
-                            skip=1
-                            w=0
-                            h=h+7 #8 because we've written 7 bits down
-                            print ("0xa found")
-                        case 0x0d:
-                            #CR or CR+LF (selectable)
-                            skipcount=2
-                            skip=1
-                            w=0
-                            print ("0xd found")
-                        case 0x14:
-                            #Also CR, oddly enough
-                            skipcount=2
-                            skip=1
-                            w=0
-                            h=h+8
-                        case 0x0e:
-                            #Double width mode
-                            skipcount=2
-                            skip=1
-                        case 0x0f:
-                            #Normal width mode
-                            skipcount=2
-                            skip=1
-                        case 0x16:
-                            #Takes 2 bytes after 0x16
-                            #Print Position in character units (NN = two-digit ASCII, "00..79")
-                            skip=1
-                            skipcount=3
-                        case 0x1b:
-                            next=ord(ascii_text[printout+1])
-                            match next:
-                                case 0x10:
-                                    #Print Position in dot units (hi:lo = 9bit binary, 0..479) (lo=lower 7bit, hi=upper 2bit)
-                                    skip=1
-                                    skipcount=4
-                                case 0x4b:
-                                    #chr(1Bh,4Bh,hi,lo,gfx0,gfx1,..) Graphics Mode (hi:lo = 9bit count, 0..479) (followed by as many bytes, with bit0=upper pixel .. bit6=lower pixel)
-                                    skip=1
-                                    skipcount=4
-                                    #Some 7 bit math to see how much we should ignore before we process more data
-                                    gfxdata=(ord(ascii_text[printout+2])*127)+ord(ascii_text[printout+3])
-                        case 0x1c:
-                            #chr(1Ch,num,gfx)      Repetition of one byte of graphic print data
-                            skip=1
-                            amt=ord(ascii_text[printout+1])
-                            gfx=ord(ascii_text[printout+2])
-                            b=string_to_binary(ascii_text[gfx])
-                            for l in range(amt):
-                                for bitloop in range(7,1,-1):
-                                    #print (b[0])
-                                    tmp=b[0][bitloop]
-                                    # So each bit is a row down.
-                                    if (tmp=="1"):
-                                        bitmap[((h+bitloop)*width)+w]=1
-                                        #print("*", end="")
-                                    else:
-                                        #print (h,w,bitloop,((h+bitloop)*height)+w)
-                                        bitmap[((h+bitloop)*width)+w]=0
-                                        #print(".", end="")
-                                w=w+1
+                    #This is 9x9 for character or 8x? for bit images
+                    #60 dpi (single density)
+                    #120 dpi (double density)
+                    #240 dpi (faked, printed as 120dpi)
+                    #72 (1:1 aspect ratio)
+                    #80,90 dpi (for 640/720 pix screenshots)
+                    printerbit=8 #Technically 8, but py range starts at upperlimit-1
+                    #This is an 8 bit printer (DMP1 is 7 bit)
+                    if skipcount==0:
+                        match ord(ascii_text[printout]):
+                            case 0x0:
+                                #Sometimes it seems like programs dump extra zeros, or maybe its an emulator.
+                                #in any case, we're going to ignore it
+                                skip=1
+                                skipcount=1
+                            case 0x08:
+                                #Backspace
+                                skipcount=1
+                                skip=1
+                                w=w-1
+                            case 0x09:
+                                skipcount=1
+                                skip=1
+                                w=w+8 #I dunno. I'm guessing here. TODO
+                            case 0x0a:
+                                #CR+LF
+                                skipcount=1
+                                skip=1
+                                w=0
+                                h=h+7 #8 because we've written 7 bits down
+                            case 0x0d:
+                                #CR or CR+LF (selectable)
+                                skipcount=2
+                                skip=1
+                                w=0
+                            case 0x14:
+                                #Also CR, oddly enough
+                                skipcount=2
+                                skip=1
+                                w=0
+                                h=h+8
+                            case 0x0e:
+                                #Double width mode
+                                skipcount=2
+                                skip=1
+                            case 0x0f:
+                                #Normal width mode
+                                skipcount=2
+                                skip=1
+                            case 0x16:
+                                #Takes 2 bytes after 0x16
+                                #Print Position in character units (NN = two-digit ASCII, "00..79")
+                                skip=1
+                                skipcount=3
+                            case 0x1b:
+                                next=ord(ascii_text[printout+1])
+                                match next:
+                                    case 0x10:
+                                        #Print Position in dot units (hi:lo = 9bit binary, 0..479) (lo=lower 7bit, hi=upper 2bit)
+                                        skip=1
+                                        skipcount=4
+                                    case 0x33:
+                                        #1B 33	Select n/216 inch line spacing (n=0..255)
+                                        skip=1
+                                        skipcount=2
+                                    case 0x41:
+                                        #1B 41 n 	Select n/72 inch line spacing (n=0..85)
+                                        skip=1
+                                        skipcount=4
+                                    case 0x4b:
+                                        #1B 4B Graphics 	Print 8-pin 60-dpi graphics (same as ESC "*" 0, see there) (density of ESC "K" can be redefined via ESC "?")
+                                        skip=1
+                                        skipcount=4
+                                        #Some 7 bit math to see how much we should ignore before we process more data
+                                        gfxdata=(ord(ascii_text[printout+3])*127)+ord(ascii_text[printout+2])
+                                        print ("Loc:",hex(printout),"has data ",(ord(ascii_text[printout+3])*127)+ord(ascii_text[printout+2])," from ",(ord(ascii_text[printout+2]))," and", ord(ascii_text[printout+3]))
+                                        print ("next code should be at ",hex(printout+gfxdata))
+                                    case 0x4c:
+                                        #1B 4C lo hi Print 8-pin 120-dpi graphics (same as ESC "*" 1, see there) (density of ESC "L" can be redefined via ESC "?")
+                                        skip=1
+                                        skipcount=4
+                                    case _:
+                                        print ("Unimplemented 0x1b function found: 0x1b,",hex(ord(ascii_text[printout+1])))
+                            case 0x1c:
+                                #chr(1Ch,num,gfx)      Repetition of one byte of graphic print data
+                                skip=1
+                                amt=ord(ascii_text[printout+1])
+                                gfx=ord(ascii_text[printout+2])
+                                b=string_to_binary(ascii_text[gfx])
+                                for l in range(amt):
+                                    for bitloop in range(1,printerbit):
+                                        #print (b[0])
+                                        tmp=b[0][bitloop]
+                                        # So each bit is a row down.
+                                        if (tmp=="1"):
+                                            bitmap[((h+bitloop)*width)+w]=1
+                                            #print("*", end="")
+                                        else:
+                                            #print (h,w,bitloop,((h+bitloop)*height)+w)
+                                            bitmap[((h+bitloop)*width)+w]=0
+                                            #print(".", end="")
+                                    w=w+1
+                            case _:
+                                print ("Unimplemented function found: ",hex(ord(ascii_text[printout]))," at around ",hex(printout))
 
         # print ("outer Skipcount=",skipcount)
         if skipcount>0:
@@ -207,9 +234,16 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
             if skip==0:
                 if gfxdata>0:
                     gfxdata=gfxdata-1 #count down if we're process graphics
-                for bitloop in range(1,8):
+                for bitloop in range(1,printerbit):
                     #print (b[0])
-                    tmp=b[0][8-bitloop]
+                    # tmp=b[0][printerbit-bitloop]
+                    match printermodel:
+                        #DMP1 seems to work from bits 8 to 1
+                        #DMP2000 works bits 1 to 8
+                        case "DMP1":
+                            tmp=b[0][printerbit-bitloop]
+                        case "DMP2000":
+                            tmp=b[0][bitloop]
                     # So each bit is a row down.
                     if (tmp=="1"):
                         bitmap[((h+bitloop)*width)+w]=1
@@ -220,14 +254,15 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                         #print(".", end="")
             w=w+1
             if (w>width):
-                print ("width hit, newline")
                 w=0
                 h=h+8 #8 because we've written 7 bits down
 
+    #Now take the bitmap and generate the image from it.
+    print ("Height:",h)
+    #Scale the PNG height to the lenght of the image.
+    height=h
     out = []
     fsize = len(ascii_text)
-    b=string_to_binary(" ")
-    b[0]="11001100"
     headloc=0
     for y in range(height):
         # Generate a single row of white/black pixels
@@ -323,6 +358,6 @@ def save_png(img: Image, filename: str) -> None:
 
 if __name__ == '__main__':
     width = 480
-    height = 500
-    img = generate_printer(width, height,'./dumpa.dat')
+    height = 600
+    img = generate_printer(width, height,'./che-dmp2000.dat')
     save_png(img, 'out.png')
