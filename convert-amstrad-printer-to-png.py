@@ -24,25 +24,27 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     #Lets try and build out the printout.
     #So this is a set of bits.
     #Each bit is a pin on the printhead, but it also sweeps across.
-    #So We need to move left to right, but also 7 bits down each time.
+    #So We need to move left to right, but also several bits down each time.
     #It's mathing time!
     #
-    #First lets initialize a bitmap.
+    #First lets initialize a bitmap and zero it
+    print ("Rendering as ",printermodel)
     bitmap=[]
-    print ((width*(height+8))*8)
+    print ("Available print space: ",(width*(height+8))*8,"bytes")
+    print ("Data size:",len(ascii_text),"bytes")
     for q in range((width*(height+8))*8):
         bitmap.append(0)
-    h=0
-    w=0
-    skipcount=0
-    print (len(bitmap), len(ascii_text))
-    dataloc=0
-    gfxdata=0
+    #h and w below are basically the print head position
+    h=0 #initial height
+    w=0 #initial width
+    skipcount=0 #How many bytes to ignore if we find a control code
+    #print (len(bitmap), len(ascii_text))
+    gfxdata=0 #Counter for how much graphics data is upcoming
 
     for printout in range(len(ascii_text)):
         # print ("Printout=",printout)
         #For this next bit, we'll try and add the data.
-        b=string_to_binary(ascii_text[printout])
+        b=string_to_binary(ascii_text[printout]) #convert the data to binary
         skip=0
         if gfxdata==0: #If we're handling graphics data don't process anything
             #Most of this is considered a #TODO
@@ -127,6 +129,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                     #240 dpi (faked, printed as 120dpi)
                     #72 (1:1 aspect ratio)
                     #80,90 dpi (for 640/720 pix screenshots)
+                    #Not sure how much of this we actually need to worry about.
                     printerbit=8 #Technically 8, but py range starts at upperlimit-1
                     #This is an 8 bit printer (DMP1 is 7 bit)
                     if skipcount==0:
@@ -177,6 +180,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 skipcount=3
                             case 0x1b:
                                 next=ord(ascii_text[printout+1])
+                                print ("Loc:",hex(printout),"Processing: 0x1b,",hex(next))
                                 match next:
                                     case 0x10:
                                         #Print Position in dot units (hi:lo = 9bit binary, 0..479) (lo=lower 7bit, hi=upper 2bit)
@@ -195,13 +199,19 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         skip=1
                                         skipcount=4
                                         #Some 7 bit math to see how much we should ignore before we process more data
-                                        gfxdata=(ord(ascii_text[printout+3])*127)+ord(ascii_text[printout+2])
-                                        print ("Loc:",hex(printout),"has data ",(ord(ascii_text[printout+3])*127)+ord(ascii_text[printout+2])," from ",(ord(ascii_text[printout+2]))," and", ord(ascii_text[printout+3]))
+                                        gfxdata=(ord(ascii_text[printout+3])*128)+ord(ascii_text[printout+2])
+                                        print ("Loc:",hex(printout),"has data",gfxdat,"bytes from ",hex(ord(ascii_text[printout+2])))," and", hex(ord(ascii_text[printout+3]))
                                         print ("next code should be at ",hex(printout+gfxdata))
                                     case 0x4c:
                                         #1B 4C lo hi Print 8-pin 120-dpi graphics (same as ESC "*" 1, see there) (density of ESC "L" can be redefined via ESC "?")
                                         skip=1
                                         skipcount=4
+                                        width=960 #If we're using 120dpi, we need to double the default "paper" we setup (was 480)
+                                        #Some 7 bit math to see how much we should ignore before we process more data
+                                        gfxdata=(ord(ascii_text[printout+3])*256)+ord(ascii_text[printout+2])
+                                        print ("Loc:",hex(printout),"has data ",gfxdata,"bytes  from ",hex(ord(ascii_text[printout+2]))," and", hex(ord(ascii_text[printout+3])))
+                                        print ("next code should be at ",hex(printout+gfxdata))
+
                                     case _:
                                         print ("Unimplemented 0x1b function found: 0x1b,",hex(ord(ascii_text[printout+1])))
                             case 0x1c:
@@ -259,7 +269,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
 
     #Now take the bitmap and generate the image from it.
     print ("Height:",h)
-    #Scale the PNG height to the lenght of the image.
+    #Scale the PNG height to the length of the image.
     height=h
     out = []
     fsize = len(ascii_text)
@@ -275,14 +285,6 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                 row.append(BLACK_PIXEL)
             else:
                 row.append(WHITE_PIXEL)
-            # print (b)
-            # if (i + j) % 2 == 0:
-            #     row.append(WHITE_PIXEL)
-            # else:
-            #     row.append(BLACK_PIXEL)
-        # for l in range(1,8):
-        #     #print (row[l])
-        #     print ("")
         out.append(row)
     return out
 
@@ -359,5 +361,5 @@ def save_png(img: Image, filename: str) -> None:
 if __name__ == '__main__':
     width = 480
     height = 600
-    img = generate_printer(width, height,'./che-dmp2000.dat')
+    img = generate_printer(width, height,'./dumpetest.dat')
     save_png(img, 'out.png')
