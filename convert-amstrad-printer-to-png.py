@@ -1,23 +1,60 @@
 import struct
 import zlib
+
+from ephex_charset import chars, widths
 from typing import BinaryIO, List, Tuple
-from PIL import Image
+#from PIL import Image
+from PIL import Image, ImageDraw
+
 
 Pixel = Tuple[int, int, int]
-Image = List[List[Pixel]]
+# Image = List[List[Pixel]]
 
 BLACK_PIXEL: Pixel = (0, 0, 0)
 WHITE_PIXEL: Pixel = (255, 255, 255)
 
 HEADER = b'\x89PNG\r\n\x1A\n'
 printermodel="DMP2000"
-printerbit=7
+printerbit=8
+pinsize=1 #pixels
+debug=False
+bitmap=[]
+
 def string_to_binary(st : str):
     return [bin(ord(i))[2:].zfill(8) for i in st]
 
+def printchar(ascii_code,y,x):
+    global bitmap
+
+    l=chars[ascii_code]
+    for l2 in l:
+        # print (l, "-",end="")
+        b=string_to_binary(chr(l2))
+        for bl in range(0,8):
+            # print (bl)
+            tmp=b[0][bl]
+            if (tmp=="1"):
+                bitmap[((y+(bl*2))*width)+x]=1
+                #print("*", end="")
+                # print ("X",end="")
+            else:
+                # print (h,w,bitloop,((h+bitloop)*height)+w)
+                bitmap[((y+(bl*2))*width)+x]=0
+                #print(".", end="")
+                # print(".",end="")
+        # print (l)
+        # print (widths[71])
+        #
+        #Make wrapping someone elses problem
+        x=x+1
+        # if (x>width):
+        #     x=0
+        #     h=h+linesize+1 #8 because we've written 7 bits down
+    x=x+(3)
+    return x
 
 def generate_printer(width: int, height: int, my_file: str) -> Image:
-
+    global bitmap
     with open(my_file, 'r') as f:
         ascii_text = f.read()
 
@@ -29,7 +66,6 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     #
     #First lets initialize a bitmap and zero it
     print ("Rendering as ",printermodel)
-    bitmap=[]
     print ("Available print space: ",(width*(height+8))*8,"bytes")
     print ("Data size:",len(ascii_text),"bytes")
     for q in range((width*(height+8))*8):
@@ -123,6 +159,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         #print(".", end="")
                                 w=w+1
                 case "DMP2000":
+                    linesize=9
                     #This is 9x9 for character or 8x? for bit images
                     #60 dpi (single density)
                     #120 dpi (double density)
@@ -145,6 +182,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 skip=1
                                 w=w-1
                             case 0x09:
+                                #09 	9 	HT 	Tab 	Horizontal tab (see ESC "D")
                                 skipcount=1
                                 skip=1
                                 w=w+8 #I dunno. I'm guessing here. TODO
@@ -153,18 +191,20 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 skipcount=1
                                 skip=1
                                 w=0
-                                h=h+7 #8 because we've written 7 bits down
+                                h=h+linesize #8 because we've written 7 bits down
                             case 0x0d:
                                 #CR or CR+LF (selectable)
                                 skipcount=2
                                 skip=1
                                 w=0
                             case 0x14:
-                                #Also CR, oddly enough
-                                skipcount=2
+                                #14 	20 	DC4 	Text Style 	Cancel one line double width mode (unlike ESC W 0/1 continous)
+                                skipcount=1
                                 skip=1
-                                w=0
-                                h=h+8
+                            case 0x0c:
+                                skip=1
+                                #May have to figure out what to do here.
+                                h=h+120
                             case 0x0e:
                                 #Double width mode
                                 skipcount=2
@@ -180,7 +220,8 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 skipcount=3
                             case 0x1b:
                                 next=ord(ascii_text[printout+1])
-                                print ("Loc:",hex(printout),"Processing: 0x1b,",hex(next))
+                                if (debug):
+                                    print ("Loc:",hex(printout),"Processing: 0x1b,",hex(next))
                                 match next:
                                     case 0x10:
                                         #Print Position in dot units (hi:lo = 9bit binary, 0..479) (lo=lower 7bit, hi=upper 2bit)
@@ -188,6 +229,11 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         skipcount=4
                                     case 0x33:
                                         #1B 33	Select n/216 inch line spacing (n=0..255)
+                                        skip=1
+                                        skipcount=2
+                                    case 0x40:
+                                        #1B 40  Initialize printer (Reset)
+                                        #Probably will ignore this
                                         skip=1
                                         skipcount=2
                                     case 0x41:
@@ -200,8 +246,9 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         skipcount=4
                                         #Some 7 bit math to see how much we should ignore before we process more data
                                         gfxdata=(ord(ascii_text[printout+3])*128)+ord(ascii_text[printout+2])
-                                        print ("Loc:",hex(printout),"has data",gfxdat,"bytes from ",hex(ord(ascii_text[printout+2])))," and", hex(ord(ascii_text[printout+3]))
-                                        print ("next code should be at ",hex(printout+gfxdata))
+                                        if debug:
+                                            print ("Loc:",hex(printout),"has data",gfxdata,"bytes from ",hex(ord(ascii_text[printout+2])))," and", hex(ord(ascii_text[printout+3]))
+                                            print ("next code should be at ",hex(printout+gfxdata))
                                     case 0x4c:
                                         #1B 4C lo hi Print 8-pin 120-dpi graphics (same as ESC "*" 1, see there) (density of ESC "L" can be redefined via ESC "?")
                                         skip=1
@@ -209,9 +256,21 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         width=960 #If we're using 120dpi, we need to double the default "paper" we setup (was 480)
                                         #Some 7 bit math to see how much we should ignore before we process more data
                                         gfxdata=(ord(ascii_text[printout+3])*256)+ord(ascii_text[printout+2])
-                                        print ("Loc:",hex(printout),"has data ",gfxdata,"bytes  from ",hex(ord(ascii_text[printout+2]))," and", hex(ord(ascii_text[printout+3])))
-                                        print ("next code should be at ",hex(printout+gfxdata))
-
+                                        if debug:
+                                            print ("Loc:",hex(printout),"has data ",gfxdata,"bytes  from ",hex(ord(ascii_text[printout+2]))," and", hex(ord(ascii_text[printout+3])))
+                                            print ("next code should be at ",hex(printout+gfxdata))
+                                    case 0x5a:
+                                        #1B 5A lo hi Print 8-pin 240/2-dpi graphics (same as ESC "*" 3, see there) (density of ESC "Z" can be redefined via ESC "?")
+                                        skip=1
+                                        skipcount=4
+                                        width=1920 #If we're using 240dpi, we need to quadruple the default "paper" we setup (was 480)
+                                        #Some 7 bit math to see how much we should ignore before we process more data
+                                        gfxdata=(ord(ascii_text[printout+3])*256)+ord(ascii_text[printout+2])
+                                        if debug:
+                                            print ("Loc:",hex(printout),"has data ",gfxdata,"bytes  from ",hex(ord(ascii_text[printout+2]))," and", hex(ord(ascii_text[printout+3])))
+                                            print ("next code should be at ",hex(printout+gfxdata))
+                                    case 0x5e:
+                                        print ("WARNING!!! 9 bit print mode enabled, but this is not yet implemented")
                                     case _:
                                         print ("Unimplemented 0x1b function found: 0x1b,",hex(ord(ascii_text[printout+1])))
                             case 0x1c:
@@ -244,7 +303,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
             if skip==0:
                 if gfxdata>0:
                     gfxdata=gfxdata-1 #count down if we're process graphics
-                for bitloop in range(1,printerbit):
+                for bitloop in range(0,printerbit):
                     #print (b[0])
                     # tmp=b[0][printerbit-bitloop]
                     match printermodel:
@@ -265,12 +324,50 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
             w=w+1
             if (w>width):
                 w=0
-                h=h+8 #8 because we've written 7 bits down
+                h=h+linesize #8 because we've written 7 bits down
+    c=0
+    h=h+16
+    w=0
+    for lookup in range(33,33+80):
+        # l=chars[lookup]
+        # c=c+1
+        # if c>80:
+        #     h=h+linesize
+        #     c=0
+        #     w=0
+        # for l2 in l:
+        #     # print (l, "-",end="")
+        #     b=string_to_binary(chr(l2))
+        #     for bl in range(0,8):
+        #         # print (bl)
+        #         tmp=b[0][bl]
+        #         if (tmp=="1"):
+        #             bitmap[((h+(bl*2))*width)+w]=1
+        #             #print("*", end="")
+        #             # print ("X",end="")
+        #         # else:
+        #         #     # print (h,w,bitloop,((h+bitloop)*height)+w)
+        #         #     bitmap[((h+bl)*width)+w]=0
+        #         #     #print(".", end="")
+        #         #     # print(".",end="")
+        #     # print (l)
+        #     # print (widths[71])
+            # w=w+1
+        w=printchar(lookup,h,w)
+        if (w>width):
+            w=0
+            h=h+linesize+1 #8 because we've written 7 bits down
+        # w=w+3
+    h=h+32
+
 
     #Now take the bitmap and generate the image from it.
     print ("Height:",h)
     #Scale the PNG height to the length of the image.
     height=h
+    page = Image.new("RGB", (width, height),"white")
+    page1 = ImageDraw.Draw(page)
+    #page1.ellipse(shape, fill ="#ffff33", outline ="red")
     out = []
     fsize = len(ascii_text)
     headloc=0
@@ -282,11 +379,17 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
             headpin=bitmap[headloc]
             headloc=headloc+1
             if headpin==1:
-                row.append(BLACK_PIXEL)
-            else:
-                row.append(WHITE_PIXEL)
-        out.append(row)
-    return out
+                #row.append(BLACK_PIXEL)
+                shape = [(x, y), (x + pinsize, y + pinsize)]
+                page1.ellipse(shape, fill ="black", outline ="black")
+
+            # else:
+            #     shape = [(x, y), (x + 2, y +2)]
+            #     page1.ellipse(shape, fill ="black", outline ="black")
+
+                #row.append(WHITE_PIXEL)
+        # out.append(row)
+    return page
 
 
 def get_checksum(chunk_type: bytes, data: bytes) -> int:
@@ -359,7 +462,31 @@ def save_png(img: Image, filename: str) -> None:
 
 
 if __name__ == '__main__':
-    width = 480
-    height = 600
-    img = generate_printer(width, height,'./dumpetest.dat')
-    save_png(img, 'out.png')
+    width = 960
+    height = 12600
+    shape = [(40, 40), (10,10)]
+    img = Image.new("RGB", (width, height))
+    img = generate_printer(width, height,'./che-dmp2000.dat')
+    # img = generate_printer(width, height,'./dumpetest.dat')
+    img.show()
+    # for l in chars:
+    #     for l2 in l:
+    #         print ("->",l, end="")
+    #
+    # # img.ellipse((25, 50, 175, 200), fill="red")
+    # image = Image.new("RGB", (400, 400), "white")
+    # #ellipse(self, xy, fill=None, outline=None, width=1):
+    # #
+    # image.ellipse(image,(25, 50), fill="red")
+
+    # w, h = 220, 190
+    # shape = [(40, 40), (w - 10, h - 10)]
+
+    # creating new Image object
+    # img = Image.new("RGB", (w, h))
+
+    # create ellipse image
+    # img1 = ImageDraw.Draw(img)
+    # img1.ellipse(shape, fill ="#ffff33", outline ="red")
+    # img.show()
+    # save_png(image, 'out.png')
