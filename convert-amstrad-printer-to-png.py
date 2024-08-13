@@ -18,6 +18,7 @@ printermodel="DMP2000"
 printerbit=8
 pinsize=1 #pixels
 debug=False
+# debug=True
 bitmap=[]
 
 def string_to_binary(st : str):
@@ -76,6 +77,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     skipcount=0 #How many bytes to ignore if we find a control code
     #print (len(bitmap), len(ascii_text))
     gfxdata=0 #Counter for how much graphics data is upcoming
+    linesize=12
 
     for printout in range(len(ascii_text)):
         # print ("Printout=",printout)
@@ -159,7 +161,6 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         #print(".", end="")
                                 w=w+1
                 case "DMP2000":
-                    linesize=9
                     #This is 9x9 for character or 8x? for bit images
                     #60 dpi (single density)
                     #120 dpi (double density)
@@ -167,6 +168,22 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                     #72 (1:1 aspect ratio)
                     #80,90 dpi (for 640/720 pix screenshots)
                     #Not sure how much of this we actually need to worry about.
+                    #n/216
+                    #A4=210 x 297 mm
+                    #Dot matrix paper is 279 x 241mm (11 x 9.5")
+                    #DMP2000 is 60 dpi, 480 pix per 8 inch, single density graphics default
+                    #9.5" wide * 60 dpi = 570 dots
+                    #11" * 60 dpi = 660
+                    #Standard font is 10 characters per inch, 80 characters per line
+                    #Mini (elite) is 12 CPI/96 pl
+                    #Condensed is 17 cpi/137 pl
+                    #double standard is 5CPI/4 pl (Note, can just do a second loop on character to do that!)
+                    #other doubles are literally just double what the font is
+                    #Each line is 1/6th inch.
+                    #Each page should be 66 lines.
+
+                    #Ref: https://files.support.epson.com/pdf/fx80__/fx80__uv.pdf
+
                     printerbit=8 #Technically 8, but py range starts at upperlimit-1
                     #This is an 8 bit printer (DMP1 is 7 bit)
                     if skipcount==0:
@@ -188,6 +205,8 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 w=w+8 #I dunno. I'm guessing here. TODO
                             case 0x0a:
                                 #CR+LF
+                                if debug:
+                                    print ("CR/LF, gfxdata=",gfxdata,", linesize=",linesize)
                                 skipcount=1
                                 skip=1
                                 w=0
@@ -197,6 +216,8 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 skipcount=2
                                 skip=1
                                 w=0
+                                if debug:
+                                    print ("Newline, linesize=",linesize)
                             case 0x14:
                                 #14 	20 	DC4 	Text Style 	Cancel one line double width mode (unlike ESC W 0/1 continous)
                                 skipcount=1
@@ -204,7 +225,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                             case 0x0c:
                                 skip=1
                                 #May have to figure out what to do here.
-                                h=h+120
+                                h=h+120 #lets just do a bunch
                             case 0x0e:
                                 #Double width mode
                                 skipcount=2
@@ -230,25 +251,40 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                     case 0x33:
                                         #1B 33	Select n/216 inch line spacing (n=0..255)
                                         skip=1
-                                        skipcount=2
+                                        skipcount=3
+                                        if debug:
+                                            print ("Linesize=",linesize," and requested ",next)
+                                            print ("Line spacing n/216",hex(next))
+                                            print ("New linesize=",int(216/(next)*2))
+                                        linesize=int(216/(next)*2)
                                     case 0x40:
                                         #1B 40  Initialize printer (Reset)
-                                        #Probably will ignore this
                                         skip=1
                                         skipcount=2
+                                        linesize=12 #default linesize
                                     case 0x41:
                                         #1B 41 n 	Select n/72 inch line spacing (n=0..85)
                                         skip=1
                                         skipcount=4
+                                        #if debug:
+                                        ls=int(next/8)
+                                        print ("Linesize=",linesize," and requested ",next)
+                                        print ("Line spacing n/72",hex(next))
+                                        print ("New linesize=",ls)
+                                        linesize=ls #int(72/(next)*2)
+                                        #linesize=8
                                     case 0x4b:
                                         #1B 4B Graphics 	Print 8-pin 60-dpi graphics (same as ESC "*" 0, see there) (density of ESC "K" can be redefined via ESC "?")
                                         skip=1
                                         skipcount=4
                                         #Some 7 bit math to see how much we should ignore before we process more data
-                                        gfxdata=(ord(ascii_text[printout+3])*128)+ord(ascii_text[printout+2])
+                                        gfxdata=(ord(ascii_text[printout+3])*256)+ord(ascii_text[printout+2])
                                         if debug:
-                                            print ("Loc:",hex(printout),"has data",gfxdata,"bytes from ",hex(ord(ascii_text[printout+2])))," and", hex(ord(ascii_text[printout+3]))
-                                            print ("next code should be at ",hex(printout+gfxdata))
+                                            print (hex(ord(ascii_text[printout+2])))
+                                            print (hex(ord(ascii_text[printout+3])))
+                                            print ("->Loc:",hex(printout),"has data ",gfxdata,end="")
+                                            print ("bytes from ",hex(ord(ascii_text[printout+2])))," and ",hex(ord(ascii_text[printout+3]))
+                                            print ("    next code should be at ",hex(printout+gfxdata))
                                     case 0x4c:
                                         #1B 4C lo hi Print 8-pin 120-dpi graphics (same as ESC "*" 1, see there) (density of ESC "L" can be redefined via ESC "?")
                                         skip=1
@@ -326,9 +362,9 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                 w=0
                 h=h+linesize #8 because we've written 7 bits down
     c=0
-    h=h+16
+    h=h+linesize
     w=0
-    for lookup in range(33,33+80):
+    for lookup in range(33,33+160):
         # l=chars[lookup]
         # c=c+1
         # if c>80:
@@ -354,9 +390,9 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
         #     # print (widths[71])
             # w=w+1
         w=printchar(lookup,h,w)
-        if (w>width):
+        if (w>(width-12)):
             w=0
-            h=h+linesize+1 #8 because we've written 7 bits down
+            h=h+(linesize*2)+1 #8 because we've written 7 bits down
         # w=w+3
     h=h+32
 
@@ -462,12 +498,24 @@ def save_png(img: Image, filename: str) -> None:
 
 
 if __name__ == '__main__':
+    #A4=210 x 297 mm
+    #Dot matrix paper is 279 x 241mm (11 x 9.5")
+    #DMP2000 is 60 dpi, 480 pix per 8 inch, single density graphics default
+    #9.5" wide * 60 dpi = 570 dots
+    #11" * 60 dpi = 660
+    #Standard font is 10 characters per inch, 80 characters per line
+    #Mini (elite) is 12 CPI/96 pl
+    #Condensed is 17 cpi/137 pl
+    #double standard is 5CPI/4 pl (Note, can just do a second loop on character to do that!)
+    #other doubles are literally just double what the font is
+    #Ref: https://files.support.epson.com/pdf/fx80__/fx80__uv.pdf
     width = 960
     height = 12600
     shape = [(40, 40), (10,10)]
     img = Image.new("RGB", (width, height))
-    img = generate_printer(width, height,'./che-dmp2000.dat')
+    # img = generate_printer(width, height,'./graph-epson.dat')
     # img = generate_printer(width, height,'./dumpetest.dat')
+    img = generate_printer(width, height,'./che-dmp2000.dat')
     img.show()
     # for l in chars:
     #     for l2 in l:
