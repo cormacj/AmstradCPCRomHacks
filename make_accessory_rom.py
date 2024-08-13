@@ -242,7 +242,7 @@ Examples:
                         help=argparse.SUPPRESS)
 
     args = parser.parse_args()
-    return args# paramaterize everything# pa# paramaterize everything
+    return args # paramaterize everything
 
 
 def initialse_rom():

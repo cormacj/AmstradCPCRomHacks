@@ -545,25 +545,3 @@ if __name__ == '__main__':
     printermodel="DMP2000"
     img = generate_printer(width, height,'./graph-dmp2000.dat')
     img.show()
-    # for l in chars:
-    #     for l2 in l:
-    #         print ("->",l, end="")
-    #
-    # # img.ellipse((25, 50, 175, 200), fill="red")
-    # image = Image.new("RGB", (400, 400), "white")
-    # #ellipse(self, xy, fill=None, outline=None, width=1):
-    # #
-    # image.ellipse(image,(25, 50), fill="red")
-
-    # w, h = 220, 190
-    # shape = [(40, 40), (w - 10, h - 10)]
-
-    # creating new Image object
-    # img = Image.new("RGB", (w, h))
-
-    # create ellipse image
-    # img1 = ImageDraw.Draw(img)
-    # img1.ellipse(shape, fill ="#ffff33", outline ="red")
-    # img.show()
-    # save_png(image, 'out.png')
-    # print (chars)
