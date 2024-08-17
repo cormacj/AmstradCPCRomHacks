@@ -20,6 +20,7 @@ Pixel = Tuple[int, int, int]
 
 BLACK_PIXEL: Pixel = (0, 0, 0)
 WHITE_PIXEL: Pixel = (255, 255, 255)
+
 # bitmaps of the printer font
 chars = [
     [4, 10, 32, 138, 96, 10, 32, 28, 2],
@@ -921,14 +922,14 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                         tmp = b[0][bitloop]
                 # So each bit is a row down.
                 if tmp == "1":
-                    update_bitmap((((h + bitloop) * width) + w), 1)
+                    update_bitmap(((h + bitloop) * ((width*2)) + w), 1)
                     # print("*", end="")
                 else:
                     # print (h,w,bitloop,((h+bitloop)*height)+w)
                     # print (((h+bitloop)*width)+w)
-                    update_bitmap((((h + bitloop) * width) + w), 0)
+                    update_bitmap(((h + bitloop) * ((width*2)) + w), 0)
                     # print(".", end="")
-            w = w + 1
+            w = w + 2
             if w > maxwidth:
                 maxwidth = w
             # if ((w+rightmargin+leftmargin)>width):
@@ -937,8 +938,9 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
             #     w=0+leftmargin
             #     h=h+linesize #8 because we've written 7 bits down
     c = 0
-    h = h + linesize
+    h = h + (linesize*2)
     w = 0 + leftmargin
+    # h=h*2
     # print some characters
     # for lookup in range(33,33+160):
     #     w=printchar(lookup,h,w)
