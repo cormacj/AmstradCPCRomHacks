@@ -451,6 +451,8 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     global bitmap
     global leftmargin
     global rightmargin
+    global linesize
+
     linesize = 26
     print("Generating printout...")
     maxwidth = 0
@@ -593,9 +595,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                     print("backspace")
                                 # Backspace
                                 skipcount = 1
-                                w = w + 1
-                                if w > maxwidth:
-                                    maxwidth = w
+                                w = w - 1
                             case 0x09:
                                 if verbose:
                                     print("Horizontal Tab")
@@ -908,8 +908,10 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
         else:
             if gfxdata > 0:
                 gfxdata = gfxdata - 1  # count down if we're process graphics
+                # if h>0:
+                #     h=h-1
             for bitloop in range(0, printerbit):
-                # print (b[0])
+                print (bitloop,linesize,h)
                 # tmp=b[0][printerbit-bitloop]
                 match printermodel:
                     # DMP1 seems to work from bits 8 to 1
@@ -919,27 +921,30 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                         # the printerbit-1 is a fixup to make it go 7 to 0 instead of 8 to 1
                         tmp = b[0][(printerbit - 1) - bitloop]
                     case "DMP2000":
-                        tmp = b[0][bitloop]
-                # So each bit is a row down.
-                if tmp == "1":
-                    update_bitmap(((h + bitloop) * ((width*2)) + w), 1)
-                    # print("*", end="")
-                else:
-                    # print (h,w,bitloop,((h+bitloop)*height)+w)
-                    # print (((h+bitloop)*width)+w)
-                    update_bitmap(((h + bitloop) * ((width*2)) + w), 0)
-                    # print(".", end="")
-            w = w + 2
+                        tmp = ord(b[0][bitloop])-48
+                        update_bitmap(((h + bitloop) * ((width)) + w), tmp)
+                # # So each bit is a row down.
+                # if tmp == "1":
+                #     print (tmp)
+                #     update_bitmap(((h + bitloop) * ((width*2)) + w), 1)
+                #     # print("*", end="")
+                # else:
+                #     # print (h,w,bitloop,((h+bitloop)*height)+w)
+                #     # print (((h+bitloop)*width)+w)
+                #     update_bitmap(((h + bitloop) * ((width*2)) + w), 0)
+                #     # print(".", end="")
+            w = w + 1
             if w > maxwidth:
                 maxwidth = w
-            # if ((w+rightmargin+leftmargin)>width):
-            #     if debug:
-            #         print("2 Hit wrap point, linesize is",linesize)
-            #     w=0+leftmargin
-            #     h=h+linesize #8 because we've written 7 bits down
-    c = 0
-    h = h + (linesize*2)
-    w = 0 + leftmargin
+            #     # if ((w+rightmargin+leftmargin)>width):
+            #     #     if debug:
+            #     #         print("2 Hit wrap point, linesize is",linesize)
+            #     #     w=0+leftmargin
+            # h=h+1 #linesize #8 because we've written 7 bits down
+    # h=h+linesize
+    # c = 0
+    # h = h + (linesize*2)
+    # w = 0 + leftmargin
     # h=h*2
     # print some characters
     # for lookup in range(33,33+160):
@@ -954,7 +959,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     # Now take the bitmap and generate the image from it.
     # print ("Height:",h)
     # Scale the PNG height to the length of the image.
-    height = h
+    height = h #(h*2)
     page = Image.new("RGB", ((maxwidth + leftmargin + rightmargin), height), "white")
     page1 = ImageDraw.Draw(page)
     # page1.ellipse(shape, fill ="#ffff33", outline ="red")
