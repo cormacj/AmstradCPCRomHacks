@@ -285,6 +285,7 @@ HEADER = b"\x89PNG\r\n\x1A\n"
 # printermodel="DMP2000"
 printerbit = 8
 pinsize = 1  # pixels
+nlqmode = 0
 debug = False
 # debug=True
 bitmap = []
@@ -395,22 +396,48 @@ def string_to_binary(st: str):
 
 def printchar(ascii_code, y, x, mode):
     global bitmap
+    underline=0
+    bold=0
+    bitmarker=1
+    nlqmode=0
     # Font Modes
 
     # 1 = Normal
     # 2 = Condensed
     # 4 = Double
+    # +8 = underline
+    # +16 = bold
+    if mode>16:
+        bold=1
+        bitmarker=2
+        mode=mode-16
+        if debug:
+            print ("Bold enabled, remaining mode=",mode)
 
+    if mode>8:
+        underline=1
+        mode=mode-8
+        if debug:
+            print ("Underline enabled, remaining mode=",mode)
     l = chars[ascii_code]
     for l2 in l:
         # print (l, "-",end="")
-        multiplier = 3  # height
+        multiplier = 4  # height
         b = string_to_binary(chr(l2))
         for bl in range(0, 8):
             # print (bl)
             tmp = b[0][bl]
+            #If we have underlining, just always make this bit enabled
+            if (underline == 1 ) and (bl==7):
+                tmp="1"
             if tmp == "1":
-                update_bitmap(((y + (bl * multiplier)) * width) + x, 1)
+                if nlqmode==0:
+                    # update_bitmap(((y + (bl * multiplier)) * width) + x, bitmarker)
+                    update_bitmap(((y + (bl * multiplier)) * width) + x, bitmarker)
+                if nlqmode==1: # and bl>0:
+                    # update_bitmap(((y-1 + (bl * multiplier)) * width) + x-1, 3)
+                    update_bitmap(((y + (bl * multiplier)) * width) + x-1, 3)
+                    update_bitmap(((y+1 + (bl * multiplier)) * width) + x,3)
                 if mode == 4:
                     for cmg in range(1, 4):
                         update_bitmap(((y + (bl * multiplier)) * width) + (x + cmg), 1)
@@ -438,7 +465,7 @@ def printchar(ascii_code, y, x, mode):
         case 4:
             x = x + 4
         case 1:
-            x = x + 3
+            x = x + 6
         case 2:
             x = x + 2
     # +6 is 40 columns (Double)
@@ -453,14 +480,15 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     global rightmargin
     global linesize
 
-    linesize = 26
+    linesize = 36
     print("Generating printout...")
     maxwidth = 0
     # Condensed=1
     # Normal=2
     # Double=4
 
-    printmode = 2
+    printmode = 2 #+16
+    onetime=0
 
     with open(my_file, "r") as f:
         ascii_text = f.read()
@@ -614,17 +642,30 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 skipcount = 1
                                 w = 0 + leftmargin
                                 h = h + linesize  # 8 because we've written 7 bits down
+                                if onetime==1:
+                                    underline=(printmode&8)
+                                    bold=(printmode&16)
+                                    printmode=2+underline+bold
+
                             case 0x0D:
                                 # CR or CR+LF (selectable)
                                 skipcount = 2
                                 w = 0 + leftmargin
                                 if debug:
                                     print("Newline, linesize=", linesize)
+                            case 0x0e:
+                                #0E 	14 	SO 	Text Style 	Select double width for one line (unlike ESC W 0/1 continous)
+                                underline=(printmode&8)
+                                bold=(printmode&16)
+                                printmode=4+underline+bold
+                                onetime=1
                             case 0x14:
                                 if verbose:
                                     print("Cancel one line double width mode.")
                                 # 14 	20 	DC4 	Text Style 	Cancel one line double width mode (unlike ESC W 0/1 continous)
-                                print("0x14: ****unimplimented****")
+                                underline=(printmode&8)
+                                bold=(printmode&16)
+                                printmode=2+underline+bold
                                 skipcount = 1
                             case 0x0C:
                                 if verbose:
@@ -633,16 +674,33 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 h = h + 120  # lets just do a bunch
                             case 0x0E:
                                 # Double width mode
-                                print("0x0e: double width ****unimplimented****")
+                                underline=(printmode&8)
+                                bold=(printmode&16)
+                                printmode=4+underline+bold
+                                # 1 = Normal
+                                # 2 = Condensed
+                                # 4 = Double
+                                # +8 = underline
+                                # +16 = bold
+
                                 skipcount = 2
                             case 0x0F:
                                 # Normal width mode
-                                print("0x0f: ****unimplimented****")
+                                underline=(printmode&8)
+                                bold=(printmode&16)
+                                printmode=1+underline+bold
                                 skipcount = 2
                             case 0x16:
                                 # Takes 2 bytes after 0x16
                                 # Print Position in character units (NN = two-digit ASCII, "00..79")
                                 skipcount = 3
+                                print(
+                                    "Loc:",
+                                    hex(printout),
+                                    "Unimplimented: 0x16,",
+                                    hex(next),
+                                )
+
                             case 0x1B:
                                 next = ord(ascii_text[printout + 1])
                                 if debug:
@@ -782,6 +840,19 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                                 "next code should be at ",
                                                 hex(printout + gfxdata),
                                             )
+                                    case 0x57:
+                                        #ESC W 87 57 Turn double-wide on/off
+                                        # Double width mode
+                                        underline=(printmode&8)
+                                        bold=(printmode&16)
+                                        mymode=(printmode&4)^4 #Current double wide mode XOR doublewide mode. (so toggle it on/off)
+                                        printmode=4+underline+bold
+                                        # 1 = Normal
+                                        # 2 = Condensed
+                                        # 4 = Double
+                                        # +8 = underline
+                                        # +16 = bold
+                                        skipcount=2
                                     case 0x59:
                                         # 1B 59 lo hi Print 8-pin 120/2-dpi graphics (same as ESC "*" 2, see there) (density of ESC "Y" can be redefined via ESC "?")
                                         skipcount = 4
@@ -842,6 +913,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                         leftmargin = ord(ascii_text[printout + 2])
                                         print("leftmargin changed to ", leftmargin)
                                     case 0x78:
+                                        #ESC x 120 78 Select NLQ or draft
                                         skipcount = 3
                                         print(
                                             "Location:",
@@ -911,7 +983,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                 # if h>0:
                 #     h=h-1
             for bitloop in range(0, printerbit):
-                print (bitloop,linesize,h)
+                # print (bitloop,linesize,h)
                 # tmp=b[0][printerbit-bitloop]
                 match printermodel:
                     # DMP1 seems to work from bits 8 to 1
@@ -964,6 +1036,10 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     page1 = ImageDraw.Draw(page)
     # page1.ellipse(shape, fill ="#ffff33", outline ="red")
     out = []
+    # x=100
+    # y=100
+    # shape = [(x, y), (x + 300, y + 600)]
+    # page1.ellipse(shape, fill ="black", outline ="black")
     fsize = len(ascii_text)
     headloc = 0
     for y in range(height):
@@ -976,11 +1052,30 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                 update_bitmap(headloc, 0)
             headpin = bitmap[headloc]
             headloc = headloc + 1
-            if headpin == 1:
+            if (headpin == 1):
                 # row.append(BLACK_PIXEL)
                 shape = [(x, y), (x + pinsize, y + pinsize)]
+                page1.ellipse(shape, fill ="black", outline ="black")
+                # if nlqmode==0:
+                #     page1.ellipse(shape, fill="black", outline="black")
+                # else:
+                #     # shape = [(x, y), (x + pinsize, y + pinsize)]
+                #     # page1.rectangle(shape, fill="#000000", outline="#000000")
+                #     shape = [(x, y), (x + 2 + pinsize, y +1+ pinsize)]
+                #     page1.rectangle(shape, fill="black", outline="black")
+                #     # shape = [(x, y+1), (x + pinsize, y + pinsize+1)]
+                #     # page1.rectangle(shape, fill="#000000", outline="#000000")
+                #     # headpin=2
+            if headpin == 2: #Bold Mode
+                # row.append(BLACK_PIXEL)
+                shape = [(x, y), (x + (pinsize+3), y + (pinsize+3))]
                 # page1.ellipse(shape, fill ="black", outline ="black")
                 page1.ellipse(shape, fill="#000000", outline="#000000")
+            if headpin == 3: #NLQ Mode
+                # row.append(BLACK_PIXEL)
+                shape = [(x, y), (x + (pinsize*1)), y + (pinsize*2)]
+                # page1.ellipse(shape, fill ="black", outline ="black")
+                page1.rectangle(shape, fill="#000000", outline="#000000")
 
             # else:
             #     shape = [(x, y), (x + 2, y +2)]
