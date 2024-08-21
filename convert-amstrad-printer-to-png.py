@@ -399,7 +399,7 @@ def printchar(ascii_code, y, x, mode):
     underline=0
     bold=0
     bitmarker=1
-    nlqmode=0
+    nlqmode=1
     # Font Modes
 
     # 1 = Normal
@@ -468,6 +468,8 @@ def printchar(ascii_code, y, x, mode):
             x = x + 6
         case 2:
             x = x + 2
+    if nlqmode==1:
+        x = x +6
     # +6 is 40 columns (Double)
     # +3 is 132 columns (Condensed)
     # =2 is 80 columns Normal
@@ -1073,7 +1075,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                 page1.ellipse(shape, fill="#000000", outline="#000000")
             if headpin == 3: #NLQ Mode
                 # row.append(BLACK_PIXEL)
-                shape = [(x, y), (x + (pinsize*1)), y + (pinsize*2)]
+                shape = [(x, y), (x + (1+(pinsize*2))), y + (0+(pinsize*2))]
                 # page1.ellipse(shape, fill ="black", outline ="black")
                 page1.rectangle(shape, fill="#000000", outline="#000000")
 
@@ -1103,7 +1105,7 @@ if __name__ == "__main__":
     leftmargin = 5
     rightmargin = 5
     # 1589 is a good size for normal font`
-    width = 1599 + leftmargin + rightmargin
+    width = 2069 + leftmargin + rightmargin
 
     img = Image.new("RGB", (width, height))
     img = generate_printer(width, height, infile)
