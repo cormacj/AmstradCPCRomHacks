@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-import struct
-import zlib
 import sys
 
 # from ephex_charset import chars, widths
-from typing import BinaryIO, List, Tuple
+from typing import  Tuple
 
 # from PIL import Image
 from PIL import Image, ImageDraw
@@ -379,7 +377,7 @@ def update_bitmap(location, value):
     # update the bitmap, and extend it if the requested location is out of bounds.
     global bitmap
     # print ('.',end="")
-    diff = location - len(bitmap)
+    # diff = location - len(bitmap)
     # if debug:
     # print ("Diff is",diff)
     # print (len(bitmap),location)
@@ -397,9 +395,9 @@ def string_to_binary(st: str):
 def printchar(ascii_code, y, x, mode):
     global bitmap
     underline=0
-    bold=0
+    #bold=1
     bitmarker=1
-    nlqmode=1
+    nlqmode=0
     # Font Modes
 
     # 1 = Normal
@@ -407,20 +405,21 @@ def printchar(ascii_code, y, x, mode):
     # 4 = Double
     # +8 = underline
     # +16 = bold
+    print(mode)
     if mode>16:
-        bold=1
+        # bold=1
         bitmarker=2
         mode=mode-16
-        if debug:
-            print ("Bold enabled, remaining mode=",mode)
+        # if debug:
+        print ("Bold enabled, remaining mode=",mode)
 
     if mode>8:
         underline=1
         mode=mode-8
         if debug:
             print ("Underline enabled, remaining mode=",mode)
-    l = chars[ascii_code]
-    for l2 in l:
+    charsdata = chars[ascii_code]
+    for l2 in charsdata:
         # print (l, "-",end="")
         multiplier = 4  # height
         b = string_to_binary(chr(l2))
@@ -469,7 +468,7 @@ def printchar(ascii_code, y, x, mode):
         case 2:
             x = x + 2
     if nlqmode==1:
-        x = x +6
+        x = x + 6
     # +6 is 40 columns (Double)
     # +3 is 132 columns (Condensed)
     # =2 is 80 columns Normal
@@ -489,7 +488,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
     # Normal=2
     # Double=4
 
-    printmode = 2 #+16
+    printmode = 2+16
     onetime=0
 
     with open(my_file, "r") as f:
@@ -576,7 +575,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                             amt = ord(ascii_text[printout + 1])
                             gfx = ord(ascii_text[printout + 2])
                             b = string_to_binary(ascii_text[gfx])
-                            for l in range(amt):
+                            for amtrange in range(amt):
                                 for bitloop in range(printerbit - 1, 0, -1):
                                     # print (b[0])
                                     tmp = b[0][bitloop]
@@ -936,7 +935,7 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                                 amt = ord(ascii_text[printout + 1])
                                 gfx = ord(ascii_text[printout + 2])
                                 b = string_to_binary(ascii_text[gfx])
-                                for l in range(amt):
+                                for amtrange in range(amt):
                                     for bitloop in range(1, printerbit):
                                         # print (b[0])
                                         tmp = b[0][bitloop]
@@ -1070,7 +1069,8 @@ def generate_printer(width: int, height: int, my_file: str) -> Image:
                 #     # headpin=2
             if headpin == 2: #Bold Mode
                 # row.append(BLACK_PIXEL)
-                shape = [(x, y), (x + (pinsize+3), y + (pinsize+3))]
+                print ("B",end="")
+                shape = [(x, y), (x + (pinsize+4), y + (pinsize+4))]
                 # page1.ellipse(shape, fill ="black", outline ="black")
                 page1.ellipse(shape, fill="#000000", outline="#000000")
             if headpin == 3: #NLQ Mode

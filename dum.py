@@ -85,7 +85,7 @@ try:
                 strpart = strpart + strsingle
             loc = loc + 1
 
-    print(locstr + ": " + hexpart + "  " + strpart)
+    print(locstr + ": " + hexpart.ljust(16*3) + "  " + strpart) #Print the last line with padding
     print("\n")
 except FileNotFoundError:
     msg = "Sorry, the file " + dumpname + " doesn't exist."
