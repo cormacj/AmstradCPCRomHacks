@@ -92,7 +92,7 @@ Examples:
 ```
 
 ## make_accessory_rom.py
-This script will build an accessory ROM. It can also extract a .COM file from a prebuilt ROM file.
+This script will build an accessory ROM for use with the Graduate Software CP/M roms.. It can also extract a .COM file from a prebuilt ROM file.
 
 The name of the ROM file is required.
 
@@ -137,3 +137,18 @@ Examples:
   Extract PCW.COM from CPM_ACC1.ROM:
     ./make_accessory_rom.py CPM_ACC1.ROM -e PCW
 ````
+## headertool.py
+This tool will remove AMSDOS headers from files for use with emulators.
+
+Sometimes files are uploaded to sites with the AMSDOS 128 byte header intact and this causes the file to not work in an emuator. This tool removes that header and writes a new copy.
+
+```
+A tool to remove AMSDOS headers from an image.
+
+Usage: headertool.py source.rom destination.rom -n <size of header to remove>
+   -n is optional, defaults to 0x80
+
+Example:
+headertool.py CPM1.rom CPM1-fixed.rom -n 0x7f
+
+```
