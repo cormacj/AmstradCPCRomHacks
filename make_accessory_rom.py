@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024 Cormac McGaughey
+# Copyright (c) 2024,2025 Cormac McGaughey
 #
 # GNU GENERAL PUBLIC LICENSE
 #    Version 3, 29 June 2007
@@ -32,10 +32,11 @@ from datetime import datetime
 
 now = datetime.now()  # current date and time
 
-myversion = "1.00"
+myversion = "1.50"
 rom = bytearray()
 comfiles = bytearray()
 romloc = 0
+total_size=15872 #Number of bytes that are available for .COM storage
 
 # Generate a default ID for the rom
 year = now.strftime("%Y")
@@ -335,6 +336,7 @@ def add_file(filename):
 
     global filestart
     global comfiles
+    global total_size
 
     # s = romloc
 
@@ -350,9 +352,10 @@ def add_file(filename):
     ]  # because modern OSs can have long files, CP/M wont, so chop it down.
     fn_padded = fn_padded.ljust(9)
     name_length = len(fn.split(".")[0])
+    total_size = total_size - file_size
 
     # Be informational
-    print(f"  Adding: {filename} as {fn_padded}")
+    print(f"  Adding: {filename} as {fn_padded} ({file_size} bytes, {total_size} bytes remaining)")
 
     # Add the various things to the ROM
     push_string_to_rom(fn_padded)  # filename, padded with spaces
@@ -582,8 +585,9 @@ numfiles = 0
 for com_file in args.COMfiles:
     add_file(com_file)
     numfiles = numfiles + 1
-    if filestart > 0xFFFF:
+    if total_size <0: #FFFF:
         err("\nError: Too many files, or file is too large to be added to a ROM")
+        exit(1)
 
 # Now pad out the rest of the file slots with 0xff
 for unused in range(numfiles, 0x16):
@@ -602,6 +606,7 @@ if romfile != "":
     with open(romfile, "wb") as binary_file:
         binary_file.write(rom)
     binary_file.close()
+    print("\nROM file successfully created!")
 else:
     print("Unable to write ROM file - no filename specified!")
     quit(1)
