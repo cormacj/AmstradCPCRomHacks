@@ -44,7 +44,7 @@ MAX_ROM_ID_LEN = 16
 MAX_ROM_NAME_LEN = 22
 MAX_ROM_VERSION_LEN = 16
 MAX_FILES = 0x16 # Total 32 files
-MY_VERSION = "2.00"
+MY_VERSION = "2.01"
 
 # =================== UTILITIES ===================
 def error(msg):
@@ -89,8 +89,17 @@ class ROMBuilder:
             self.push_byte(0xFF)
 
     def add_file(self, filename):
-        with open(filename, "rb") as f:
-            data = f.read()
+        try:
+            with open(filename, "rb") as f:
+                data = f.read()
+
+        except FileNotFoundError:
+            print(f'\n *** ERROR: {filename} was not found.')
+            exit(1)
+        except Exception as e:
+           print(f'\n *** ERROR: Error accessing {filename}.')
+           exit(1)
+
         file_size = len(data)
         basename = pad_string(filename.split(".")[0].upper(), 9)
         name_length = len(filename.split(".")[0])

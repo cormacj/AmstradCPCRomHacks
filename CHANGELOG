@@ -1,4 +1,5 @@
 make_accessory_rom.py:
+    v2.01: File handling error management
     v2.00: Full rewrite.
            Fixed error handling.
            Make messages and help more informative.
