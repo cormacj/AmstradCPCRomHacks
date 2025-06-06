@@ -92,50 +92,44 @@ Examples:
 ```
 
 ## make_accessory_rom.py
-This script will build an accessory ROM for use with the Graduate Software CP/M roms.. It can also extract a .COM file from a prebuilt ROM file.
+This script will build an accessory ROM for use with the Graduate Software CP/M roms. It can also extract a .COM file from a prebuilt ROM file.
 
 The name of the ROM file is required.
 
 If you are extracting a .COM using `-e` then all the other possible arguments will be ignored if supplied.
 
 ```
-usage: ./make_accessory_rom.py [-h] [-i "ROM ID String"] [-n "ROM Description"] [-v "ROM Version string"] [-e [filename, or blank for all files ...]] ROM_filename [.COM_file ...]
+make_accessory_rom.py - version 2.00
 
-This is a utility to build accessory ROMs for Amstrad Graduate Software CP/M ROMs
+usage: make_accessory_rom.py [-h] [-i ID] [-n NAME] [-v ROMVERSION] [-e COMfile [COMfile ...]] ROMfile [COMfiles ...]
+
+Build accessory ROMs for Amstrad Graduate Software CP/M ROMs
 
 options:
   -h, --help            show this help message and exit
 
-Required:
-  A name for a ROM file is required
+Creating ROMs:
+  make_accessory_rom.py [-h] [-i ID] [-n NAME] [-v ROMVERSION] ROMfile COMfile [COMfiles ...]
 
-  ROM_filename          This is the name of the ROM file that you are creating.
+  ROMfile               ROM file to create
+  COMfiles              CP/M .COM programs to add
+  -i ID, --id ID        ROM id (max 16)
+  -n NAME, --name NAME  ROM name (max 22)
+  -v ROMVERSION, --romversion ROMVERSION
+                        ROM version (max 16)
 
-Building:
-  These options relate to building a ROM
+Extracting files from a ROM:
+  usage: make_accessory_rom.py ROMFILE -e COMfile [COMfiles ...]
 
-  .COM_file             This must be a CP/M program.
-  -i "ROM ID String", --id "ROM ID String"
-                        ROM Identification. It must start with G, and be no more than 16 characters. The default is "Grad ROM 06/2024"
-  -n "ROM Description", --name "ROM Description"
-                        This is the name that will be shown in commands such as |OHELP or romcat. It must be no more than 32 characters.
-  -v "ROM Version string", --romversion "ROM Version string"
-                        This is a string that will dictate the version of the rom.
-
-Extracting:
-  These options relate to extracting files from a ROM
-
-  -e [filename, or blank for all files ...], --extract [filename, or blank for all files ...]
-                        Extract files from a ROM.
-
-Note: -e can only be used by itself and not with any other argument.
+  -e COMfile [COMfile ...], --extract COMfile [COMfile ...]
+                        Extract files from ROM
 
 Examples:
   To recreate the original accessory rom:
-    ./make_accessory_rom.py CPM_ACC1.ROM NSWEEP.COM FORMAT.COM PCW.COM RUN.COM UNERA.COM D.COM -i "Graduate (C)1988" -n "CP/M Accessory Rom 1" -v "VER 2.30 "
+    /home/cormac/Amstrad/utils/make_accessory_rom.py -i "Graduate (C)1988" -n "CP/M Accessory Rom 1" -v "VER 2.30" CPM_ACC1.ROM NSWEEP.COM FORMAT.COM PCW.COM RUN.COM UNERA.COM D.COM
 
   Extract PCW.COM from CPM_ACC1.ROM:
-    ./make_accessory_rom.py CPM_ACC1.ROM -e PCW
+    /home/cormac/Amstrad/utils/make_accessory_rom.py CPM_ACC1.ROM -e PCW
 ````
 ## headertool.py
 This tool will remove AMSDOS headers from files for use with emulators.
