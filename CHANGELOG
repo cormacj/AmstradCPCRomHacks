@@ -1,6 +1,9 @@
 make_accessory_rom.py:
-    v1.50: Fix error handling, make messages more informative.
-    
+    v2.00: Full rewrite.
+           Fixed error handling.
+           Make messages and help more informative.
+           Made code more readable.
+
 romdetails.py:
     v2.51: Add an option for outputting in wikitable format
     v2.50: Adds code for displaying Graduate Software accessory rom details.
