@@ -72,17 +72,23 @@ This was written for patching Graduate Software CPM+ roms. For more details see 
 
 This patches the first CPM rom so you can use your own name, address, password etc
 ```
-Usage:
-To display the details of what is stored in the ROM:
-  cpmrompatch.py --src SourceROM.rom --display
+usage: cpmrompatch.py [-h] [--src SRC] [--dest DEST] [--display] [--quiet] [--name NAME] [--address ADDRESS] [--serial SERIAL] [--password PASSWORD] [filename]
 
-To update the ROM, you must specify --src and --dest and one of the following:
-  cpmrompatch.py --src SourceROM.rom --dest DestROM.rom
-    --quiet - Disable the noisy, large default ROM boot message and replace it with a short version
-    --name "<Name>" - Sets the name of the ROM owner
-    --address "<Address>" - Sets the address of the ROM owner
-    --serial <serial number> - Sets the serial number of the ROM
-    --password <password> - Sets the password for |PASSWORD
+Patch/display Graduate Software CPM+ ROMs for Amstrad CPC. Version 2.01
+
+positional arguments:
+  filename             ROM file (display mode if no --src)
+
+options:
+  -h, --help           show this help message and exit
+  --src SRC            Source ROM file
+  --dest DEST          Destination ROM file (for patching)
+  --display            Display ROM details
+  --quiet              Patch ROM to quiet boot
+  --name NAME          Set ROM owner name (max 24 chars)
+  --address ADDRESS    Set ROM owner address (max 68 chars)
+  --serial SERIAL      Set serial number (max 12 chars)
+  --password PASSWORD  Set password (max 48 chars)
 
 You can also just pass a filename and it will display the details for that ROM
   eg cpmrompatch.py CPM1.ROM
@@ -90,6 +96,9 @@ You can also just pass a filename and it will display the details for that ROM
 Examples:
    cpmrompatch.py --src CPM1.rom --dest CPM1-updated.rom --name "John Smith" --address "123 Acacia Ave, Sometown"
 ```
+
+The `--quiet` flag, removes the large red noisy banner and replaces it with a simpler "Graduate Software - CP/M Loader" message.
+
 
 ## make_accessory_rom.py
 This script will build an accessory ROM for use with the Graduate Software CP/M roms. It can also extract a .COM file from a prebuilt ROM file.

@@ -1,3 +1,7 @@
+cpmrompatch.py:
+    v2.01: Update the maximum password length to 48. In theory it could be up to about 119 characters.
+           Updated the README with the help information from the v2 rebuild.
+
 make_accessory_rom.py:
     v2.01: File handling error management
     v2.00: Full rewrite.

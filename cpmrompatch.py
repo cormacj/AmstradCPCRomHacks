@@ -48,7 +48,7 @@ def validate(field, value, maxlen):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Patch/display Graduate Software CPM+ ROMs for Amstrad CPC."
+        description="Patch/display Graduate Software CPM+ ROMs for Amstrad CPC. Version 2.01"
     )
     parser.add_argument("--src", help="Source ROM file")
     parser.add_argument("--dest", help="Destination ROM file (for patching)")
@@ -57,7 +57,7 @@ def parse_args():
     parser.add_argument("--name", help="Set ROM owner name (max 24 chars)")
     parser.add_argument("--address", help="Set ROM owner address (max 68 chars)")
     parser.add_argument("--serial", help="Set serial number (max 12 chars)")
-    parser.add_argument("--password", help="Set password (max 16 chars)")
+    parser.add_argument("--password", help="Set password (max 48 chars)")
     parser.add_argument("filename", nargs="?", help="ROM file (display mode if no --src)")
 
     args = parser.parse_args()
@@ -123,9 +123,9 @@ def patch_rom(args, rom_bytes):
         validate("serial", args.serial, 12)
         rom_bytes[0x3F71:0x3F7D] = xorcrypt(args.serial, 0x4E, 12)
     if args.password:
-        validate("password", args.password, 16)
+        validate("password", args.password, 48)
         rom_bytes[0x3F87] = len(args.password) ^ 0xAA
-        pwcrypt = xorcrypt(args.password, 0xAA, 17)
+        pwcrypt = xorcrypt(args.password, 0xAA, 49)
         # Fill 0x3F88 up to 0x3F97 (max 16 chars, 17 bytes for pad)
         rom_bytes[0x3F88:0x3F88+len(pwcrypt)] = pwcrypt
 
